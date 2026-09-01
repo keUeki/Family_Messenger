@@ -1,0 +1,23 @@
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 59000
+      password: ${REDIS_PASSWORD}
+      ttl: 3600
+      timeout: 30000
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:49152/InfiniteChat?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: ${DB_PASSWORD}
+pgvector:
+  database: dp
+  host: 127.0.0.1
+  port : 54328
+  user: root
+  password: ${PGVECTOR_PASSWORD}
+  table: dp_embedding
+
+rag:
+  docs-path: AiService/src/main/resources/docs

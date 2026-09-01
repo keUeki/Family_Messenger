@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: AiService
+  profiles:
+    active: dev
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+server:
+  port: 8105
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    dev.langchain4j.mcp: ERROR
+
+
+langchain4j:
+  community:
+    dashscope:
+      chat-model:
+        model-name: qwen3.8-max
+        api-key: ${DASHSCOPE_API_KEY}
+      embedding-model:
+        model-name: text-embedding-v4
+        api-key: ${DASHSCOPE_API_KEY}
+      streaming-chat-model:
+        model-name: qwen3.8-max
+        api-key: ${DASHSCOPE_API_KEY}
+
+
+bigmodel:
+  api-key: ${BIGMODEL_API_KEY}
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      show-details: always
