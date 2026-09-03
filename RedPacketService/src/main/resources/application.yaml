@@ -13,6 +13,10 @@ spring:
       port: 59000
       password: ${REDIS_PASSWORD}
       timeout: 30000
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:18375
 
 server:
   port: 8103

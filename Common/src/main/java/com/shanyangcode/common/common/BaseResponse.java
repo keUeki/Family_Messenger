@@ -1,9 +1,9 @@
-package com.shanyangcode.userservice.common;
-
-import java.io.Serializable;
+package com.shanyangcode.common.common;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.io.Serializable;
 
 /**
  * 通用返回类
