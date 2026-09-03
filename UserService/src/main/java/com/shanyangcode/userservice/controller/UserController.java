@@ -12,7 +12,7 @@ import com.shanyangcode.userservice.model.dto.UserRegisterRequest;
 import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;
 import com.shanyangcode.userservice.service.UserService;
-import com.shanyangcode.userservice.utils.JwtUtil;
+import com.shanyangcode.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
