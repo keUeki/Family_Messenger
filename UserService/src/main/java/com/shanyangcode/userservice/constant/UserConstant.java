@@ -1,7 +1,6 @@
 package com.shanyangcode.userservice.constant;
 
 
-import java.util.concurrent.TimeUnit;
 
 public class UserConstant {
 
@@ -16,18 +15,4 @@ public class UserConstant {
     public static final Integer WORKER_ID = 1;
 
     public static final Integer DATA_CENTER_ID = 1;
-
-    public static final String TOKEN_SECRET_KEY = "shanyangcodebackendinitprojectshanyangcodebackendinitproject";
-
-    public static final Integer ACCESS_TOKEN_EXPIRE_TIME =  30;
-
-    public static final Integer REFRESH_TOKEN_EXPIRE_TIME =  7;
-
-    public static final String ACCESS_TOKEN_PREFIX = "access:token:";
-
-    public static final String REFRESH_TOKEN_PREFIX = "refresh:token:";
-
-    public static final TimeUnit ACCESS_TOKEN_UNIT = TimeUnit.MINUTES; // 分钟
-
-    public static final TimeUnit REFRESH_TOKEN_UNIT = TimeUnit.DAYS; // 天
 }
