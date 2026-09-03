@@ -1,10 +1,5 @@
-package com.shanyangcode.aiservice.common;
+package com.shanyangcode.common.common;
 
-/**
- * 自定义错误码
- *
- * 注意：91xxx/92xxx 系列错误消息引用自 ValidationError 枚举，遵循单一数据源原则
- */
 public enum ErrorCode {
     // ============ 通用错误码（40xxx）============
     PARAMS_ERROR(40000, "请求参数错误"),

@@ -24,6 +24,10 @@ spring:
           auth: true
           starttls:
             enable: true
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:18375
 
 
 mybatis-plus:

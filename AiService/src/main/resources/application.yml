@@ -14,11 +14,13 @@ spring:
           auth: true
           starttls:
             enable: true
+  cloud:
+    nacos:
+      discovery:
+        server-addr: localhost:18375
 
 server:
   port: 8105
-  servlet:
-    context-path: /api
 
 logging:
   level:

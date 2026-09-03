@@ -1,8 +1,8 @@
 package com.shanyangcode.userservice.handler;
 
+import com.shanyangcode.common.common.ErrorCode;
 import com.shanyangcode.common.constant.CommonConstant;
-import com.shanyangcode.userservice.common.ErrorCode;
-import com.shanyangcode.userservice.exception.BusinessException;
+import com.shanyangcode.common.exception.BusinessException;
 import com.shanyangcode.common.utils.JwtUtil;
 
 import io.jsonwebtoken.Claims;

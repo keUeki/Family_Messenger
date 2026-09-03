@@ -1,20 +1,21 @@
-package com.shanyangcode.aiservice.Exception;
+package com.shanyangcode.common.exception;
 
 
-import java.util.HashMap;
-import java.util.Map;
-
-
-import com.shanyangcode.aiservice.common.BaseResponse;
-import com.shanyangcode.aiservice.common.ErrorCode;
-import com.shanyangcode.aiservice.common.ResultUtils;
+import com.shanyangcode.common.common.BaseResponse;
+import com.shanyangcode.common.common.ErrorCode;
+import com.shanyangcode.common.common.ResultUtils;
 import dev.langchain4j.guardrail.InputGuardrailException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * 全局异常处理器
@@ -48,6 +49,12 @@ public class GlobalExceptionHandler {
     }
 
 
+    @ExceptionHandler(ConstraintViolationException.class)
+    public BaseResponse<?> handleConstraintViolation(ConstraintViolationException e) {
+        String message = e.getConstraintViolations().stream().map(ConstraintViolation::getMessage).findFirst().orElse("请求参数校验失败");
+        return ResultUtils.error(ErrorCode.PARAMS_ERROR, message);
+    }
+
     @ExceptionHandler(value = MissingServletRequestParameterException.class)
     public BaseResponse<?> handlerMissingServletRequestParameterException(Exception e) {
         log.error("缺少必填参数:{}", e.toString());
@@ -62,3 +69,4 @@ public class GlobalExceptionHandler {
         return ResultUtils.error(ErrorCode.SENSITIVE_WORD_ERROR);
     }
 }
+
