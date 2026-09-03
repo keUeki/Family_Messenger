@@ -2,6 +2,7 @@ package com.shanyangcode.realtimeservice.consumer;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.json.JSONUtil;
+import com.shanyangcode.common.constant.CommonConstant;
 import com.shanyangcode.common.constant.SessionTypeConstant;
 import com.shanyangcode.common.model.dto.MessageRequest;
 import com.shanyangcode.common.model.vo.MessageResponse;
@@ -19,7 +20,7 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class ConsumerMessageService {
 
-    @KafkaListener(topics = "message-topic", groupId = "infinite-chat-push-group-0")
+    @KafkaListener(topics = CommonConstant.KAFKA_MESSAGE_TOPIC_PUSH)
     public void consume(String message) {
         System.out.println("收到消息：" + message);
         MessageRequest messageRequest = JSONUtil.toBean(message, MessageRequest.class);
