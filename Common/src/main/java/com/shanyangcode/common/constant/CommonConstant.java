@@ -19,11 +19,15 @@ public class CommonConstant {
 
     public static final String KAFKA_MESSAGE_TOPIC_STORE = "store-topic";
 
-    public static final String KAFKA_MESSAGE_TOPIC_PUSH = "message-topic";
+    public static final String KAFKA_MESSAGE_TOPIC_PUSH = "push-topic";
 
     public static final String REDIS_NETTY_URI = "nettyUri";
 
     public static final String DISCOVERY_CLIENT_NAME = "RealTimeService";
 
     public static final String NETTY_SERVICE_URI = "/ws/netty";
+
+    public static final String BUCKET_NAME = "infinitechat";
+
+    public static final Integer PICTURE_EXPIRE_TIME = 3000;
 }
