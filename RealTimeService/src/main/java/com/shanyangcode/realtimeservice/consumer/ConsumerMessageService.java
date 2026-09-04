@@ -7,20 +7,27 @@ import com.shanyangcode.common.constant.SessionTypeConstant;
 import com.shanyangcode.common.model.dto.MessageRequest;
 import com.shanyangcode.common.model.vo.MessageResponse;
 import com.shanyangcode.common.utils.FormatDateUtil;
+import com.shanyangcode.realtimeservice.client.UserServiceClient;
 import com.shanyangcode.realtimeservice.websocket.ChannelManager;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 
 @Service
 @Slf4j
 public class ConsumerMessageService {
 
-    @KafkaListener(topics = CommonConstant.KAFKA_MESSAGE_TOPIC_PUSH)
+    @Resource
+    private UserServiceClient userServiceClient;
+
+    @KafkaListener(topics = CommonConstant.KAFKA_MESSAGE_TOPIC_PUSH, groupId = "infinite-chat-push-group-0")
     public void consume(String message) {
         System.out.println("收到消息：" + message);
         MessageRequest messageRequest = JSONUtil.toBean(message, MessageRequest.class);
@@ -40,7 +47,11 @@ public class ConsumerMessageService {
     }
 
     public void groupMessage(MessageRequest messageRequest) {
-        // todo
+        List<Long> receiveUserIds = userServiceClient.getUserIdBySessionId(messageRequest.getSessionId());
+        MessageResponse messageResponse = createMessageResponse(messageRequest);
+        for (Long receiveUserId : receiveUserIds) {
+            pushMessageToUser(messageResponse, receiveUserId);
+        }
     }
 
     public MessageResponse createMessageResponse(MessageRequest messageRequest) {

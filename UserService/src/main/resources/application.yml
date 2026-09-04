@@ -40,3 +40,9 @@ mybatis-plus:
 
 server:
   port: 8104
+
+
+minio:
+  url: http://localhost:9000
+  access-key: minioadmin
+  secret-key: minioadmin

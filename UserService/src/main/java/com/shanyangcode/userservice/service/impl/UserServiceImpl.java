@@ -11,16 +11,19 @@ import com.shanyangcode.common.exception.ThrowUtils;
 import com.shanyangcode.userservice.constant.UserConstant;
 import com.shanyangcode.userservice.loadbalancer.NettyServiceLocator;
 import com.shanyangcode.userservice.mapper.UserMapper;
+import com.shanyangcode.userservice.model.dto.UpdateAvatarRequest;
 import com.shanyangcode.userservice.model.dto.UserLoginCodeRequest;
 import com.shanyangcode.userservice.model.dto.UserLoginPasswordRequest;
 import com.shanyangcode.userservice.model.dto.UserRegisterRequest;
 import com.shanyangcode.userservice.model.entity.User;
 import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;
+import com.shanyangcode.userservice.model.vo.UploadUrlResponse;
 import com.shanyangcode.userservice.service.UserService;
 
 import com.shanyangcode.userservice.utils.EmailUtil;
 import com.shanyangcode.common.utils.JwtUtil;
+import com.shanyangcode.userservice.utils.OssUtils;
 import com.shanyangcode.userservice.utils.RandomCodeUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.annotation.Resource;
@@ -192,6 +195,27 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     @Override
     public String refreshUri(Long userId) {
         return serviceInstanceUtil.getServiceInstance(String.valueOf(userId));
+    }
+
+    @Resource
+    private OssUtils ossUtils;
+
+    @Override
+    public UploadUrlResponse uploadUrl(String fileName) {
+        UploadUrlResponse uploadUrlResponse = new UploadUrlResponse();
+        uploadUrlResponse.setUploadUrl(ossUtils.uploadUrl(CommonConstant.BUCKET_NAME, fileName, CommonConstant.PICTURE_EXPIRE_TIME));
+        uploadUrlResponse.setDownloadUrl(ossUtils.downUrl(CommonConstant.BUCKET_NAME, fileName));
+        return uploadUrlResponse;
+    }
+
+    @Override
+    public Boolean updateAvatar(UpdateAvatarRequest updateAvatarRequest) {
+        User user = this.getById(updateAvatarRequest.getUserId());
+        if (user == null) {
+            return false;
+        }
+        user.setAvatar(updateAvatarRequest.getUri());
+        return this.updateById(user);
     }
 }
 

@@ -21,8 +21,8 @@ spring:
       acks: all
       retries: 3
     consumer:
-      group-id: infinite-chat-push-group-${random.uuid}   # 每个实例一个独立消费组，实现广播语义
-      auto-offset-reset: latest          # 广播组每次启动都是新组，必须 latest，否则会重放全量历史消息
+      group-id: infinite-chat-push-group                # 消费者组 ID
+      auto-offset-reset: earliest       # earliest / latest / none
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       enable-auto-commit: true          # 是否自动提交 offset

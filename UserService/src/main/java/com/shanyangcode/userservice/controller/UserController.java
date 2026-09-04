@@ -7,11 +7,13 @@ import com.shanyangcode.common.common.ErrorCode;
 import com.shanyangcode.common.common.ResultUtils;
 import com.shanyangcode.common.exception.ThrowUtils;
 import com.shanyangcode.userservice.constant.UserConstant;
+import com.shanyangcode.userservice.model.dto.UpdateAvatarRequest;
 import com.shanyangcode.userservice.model.dto.UserLoginCodeRequest;
 import com.shanyangcode.userservice.model.dto.UserLoginPasswordRequest;
 import com.shanyangcode.userservice.model.dto.UserRegisterRequest;
 import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;
+import com.shanyangcode.userservice.model.vo.UploadUrlResponse;
 import com.shanyangcode.userservice.service.UserService;
 import com.shanyangcode.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -78,6 +80,16 @@ public class UserController {
     @GetMapping("/refresh/uri")
     public BaseResponse<String> refreshUri(@RequestParam Long userId) {
         return ResultUtils.success(userService.refreshUri(userId));
+    }
+
+    @GetMapping("/uploadUrl")
+    public BaseResponse<UploadUrlResponse> getUploadUrl(@RequestParam String fileName) {
+        return ResultUtils.success(userService.uploadUrl(fileName));
+    }
+
+    @PostMapping("/update/avatar")
+    public BaseResponse<Boolean> updateAvatar(@RequestBody UpdateAvatarRequest updateAvatarRequest)  {
+        return ResultUtils.success(userService.updateAvatar(updateAvatarRequest));
     }
 }
 
