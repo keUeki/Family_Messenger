@@ -58,7 +58,6 @@ public class UserController {
     }
 
 
-
     @GetMapping("/logout")
     public BaseResponse<Boolean> logout(HttpServletRequest request) {
         String accessToken = request.getHeader("Access-Token");
@@ -76,6 +75,10 @@ public class UserController {
     }
 
 
+    @GetMapping("/refresh/uri")
+    public BaseResponse<String> refreshUri(@RequestParam Long userId) {
+        return ResultUtils.success(userService.refreshUri(userId));
+    }
 }
 
 

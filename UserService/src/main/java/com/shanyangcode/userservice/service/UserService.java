@@ -13,18 +13,15 @@ public interface UserService extends IService<User> {
 
     void sendCaptcha(String targetEmail);
 
-
     LoginAndRegisterResponse register(UserRegisterRequest userRegisterRequest);
 
-
     LoginAndRegisterResponse loginPassword(UserLoginPasswordRequest userLoginPasswordRequest);
-
-
 
     LoginAndRegisterResponse loginCode(UserLoginCodeRequest userLoginCodeRequest);
 
     boolean logout(String userId);
 
-
     TokenResponse refreshToken(String refreshToken);
+
+    String refreshUri(Long userId);
 }
