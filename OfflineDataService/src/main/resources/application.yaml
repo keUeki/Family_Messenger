@@ -34,3 +34,18 @@ spring:
 
 server:
   port: 8101
+
+canal:
+  server:
+    host: localhost
+    port: 11111
+  destination: example
+  username: canal
+  password: canal
+  filter: ".*\\..*"
+  client:
+    heartbeat:
+      interval: 2000    # 心跳间隔(毫秒)
+      timeout: 3000    # 心跳超时(毫秒)
+    socket:
+      timeout: 6000    # socket超时(毫秒)

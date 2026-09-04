@@ -51,7 +51,7 @@ public class NettyService {
                         channelPipeline.addLast(new HttpObjectAggregator(65536));
                         channelPipeline.addLast(new WebSocketAuthHeader(stringRedisTemplate));
                         channelPipeline.addLast(new WebSocketServerProtocolHandler("/ws/netty"));
-                        channelPipeline.addLast(new WebSocketHandler(kafkaTemplate));
+                        channelPipeline.addLast(new WebSocketHandler(kafkaTemplate, stringRedisTemplate));
                     }
                 });
 
