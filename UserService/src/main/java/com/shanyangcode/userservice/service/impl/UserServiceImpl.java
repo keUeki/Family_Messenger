@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shanyangcode.common.common.ErrorCode;
 import com.shanyangcode.common.constant.CommonConstant;
+import com.shanyangcode.common.constant.SessionTypeConstant;
 import com.shanyangcode.common.exception.ThrowUtils;
 import com.shanyangcode.userservice.constant.UserConstant;
 import com.shanyangcode.userservice.loadbalancer.NettyServiceLocator;
@@ -16,11 +17,15 @@ import com.shanyangcode.userservice.model.dto.UserLoginCodeRequest;
 import com.shanyangcode.userservice.model.dto.UserLoginPasswordRequest;
 import com.shanyangcode.userservice.model.dto.UserRegisterRequest;
 import com.shanyangcode.userservice.model.entity.User;
+import com.shanyangcode.userservice.model.entity.UserSession;
+import com.shanyangcode.userservice.model.entity.Session;
 import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;
 import com.shanyangcode.userservice.model.vo.UploadUrlResponse;
+import com.shanyangcode.userservice.service.SessionService;
 import com.shanyangcode.userservice.service.UserService;
 
+import com.shanyangcode.userservice.service.UserSessionService;
 import com.shanyangcode.userservice.utils.EmailUtil;
 import com.shanyangcode.common.utils.JwtUtil;
 import com.shanyangcode.userservice.utils.OssUtils;
@@ -33,14 +38,17 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 
 @Service
 @Slf4j
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>
     implements UserService {
-
 
     @Resource
     private EmailUtil emailUtil;
@@ -50,6 +58,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Resource
     private StringRedisTemplate stringRedisTemplate;
+
+    @Resource
+    private UserSessionService userSessionService;
+
+    @Resource
+    private SessionService sessionService;
 
     @Override
     public void sendCaptcha(String targetEmail) {
@@ -61,6 +75,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         stringRedisTemplate.opsForValue().set(targetEmail, randomCode, UserConstant.CAPTCHA_EXPIRE_TIME, TimeUnit.MINUTES);
     }
 
+
+
     @Override
     public LoginAndRegisterResponse register(UserRegisterRequest userRegisterRequest) {
 
@@ -68,14 +84,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String code = userRegisterRequest.getCode();
         // 验证验证码是否正确
         String redisCode = stringRedisTemplate.opsForValue().get(email);
-        ThrowUtils.throwIf(StringUtils.isBlank(redisCode) || !code.equals(redisCode),ErrorCode.LOGIN_ERROR_CODE);
+        ThrowUtils.throwIf(StringUtils.isBlank(redisCode) || !code.equals(redisCode), ErrorCode.LOGIN_ERROR_CODE);
 
         // 验证用户账号是否已经存在
         ThrowUtils.throwIf(getUser(email) != null, ErrorCode.USER_ALREADY_EXISTS);
 
 
         // 验证密码是否相同
-        ThrowUtils.throwIf(!userRegisterRequest.getPassword().equals(userRegisterRequest.getConfirmPassword()),ErrorCode.LOGIN_ERROR);
+        ThrowUtils.throwIf(!userRegisterRequest.getPassword().equals(userRegisterRequest.getConfirmPassword()), ErrorCode.LOGIN_ERROR);
 
 
         String password = userRegisterRequest.getPassword();
@@ -84,11 +100,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         LoginAndRegisterResponse loginAndRegisterResponse = new LoginAndRegisterResponse();
 
+        Snowflake snowflake = IdUtil.getSnowflake(UserConstant.WORKER_ID, UserConstant.DATA_CENTER_ID);
+        Long userId = snowflake.nextId();
         synchronized (email.intern()) {
-            Snowflake snowflake = IdUtil.getSnowflake(UserConstant.WORKER_ID, UserConstant.DATA_CENTER_ID);
             User newUser = new User();
             newUser.setEmail(email);
-            newUser.setUserId(snowflake.nextId());
+            newUser.setUserId(userId);
             newUser.setNickname(userRegisterRequest.getNickname());
             newUser.setPassword(encryptedPassword);
             boolean saveUser = this.save(newUser);
@@ -96,8 +113,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
             BeanUtil.copyProperties(getUser(email), loginAndRegisterResponse);
         }
 
+
+
+        Long sessionId = snowflake.nextId();
+        Session session = new Session();
+        session.setSessionId(sessionId);
+        session.setStatus(CommonConstant.SESSION_STATUS);
+        session.setType(SessionTypeConstant.ROBOT_TYPE);
+        ThrowUtils.throwIf(!sessionService.save(session), ErrorCode.SYSTEM_ERROR);
+
+
+        // 创建用户会话（普通用户）
+        UserSession userSessionUser = createUserSession(userId, sessionId, CommonConstant.USER_ROLE_NORMAL, CommonConstant.SESSION_STATUS);
+
+        // 创建 AI 会话
+        UserSession userSessionAI = createUserSession(CommonConstant.AI_ID, sessionId, CommonConstant.USER_ROLE_NORMAL, CommonConstant.SESSION_STATUS);
+
+        // 放入列表
+        List<UserSession> sessionList = Arrays.asList(userSessionUser, userSessionAI);
+
+        // 批量保存
+        ThrowUtils.throwIf(!userSessionService.saveBatch(sessionList), ErrorCode.SYSTEM_ERROR);
+
         stringRedisTemplate.delete(email);
         return createJwt(loginAndRegisterResponse);
+    }
+
+    public UserSession createUserSession(Long userId, Long sessionId, Integer role, Integer stats) {
+        UserSession userSession = new UserSession();
+        userSession.setUserId(userId);
+        userSession.setSessionId(sessionId);
+        userSession.setRole(role);
+        userSession.setStatus(stats);
+        return userSession;
     }
 
     @Override
@@ -231,6 +279,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         user.setAvatar(updateAvatarRequest.getUri());
         return this.updateById(user);
+    }
+
+    @Override
+    public Map<Long, String> getUserNickName(Long sessionId) {
+        List<Long> userIds = userSessionService.getUserIdBySessionId(sessionId);
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.in("user_id", userIds);
+        List<User> users = this.list(queryWrapper);
+        return users.stream().collect(Collectors.toMap(User::getUserId, User::getNickname));
     }
 }
 

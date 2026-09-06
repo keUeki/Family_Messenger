@@ -10,6 +10,8 @@ import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;
 import com.shanyangcode.userservice.model.vo.UploadUrlResponse;
 
+import java.util.Map;
+
 
 public interface UserService extends IService<User> {
 
@@ -30,4 +32,6 @@ public interface UserService extends IService<User> {
     UploadUrlResponse uploadUrl(String fileName) ;
 
     Boolean updateAvatar(UpdateAvatarRequest updateAvatarRequest);
+
+    Map<Long, String> getUserNickName(Long sessionId);
 }
