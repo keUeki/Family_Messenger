@@ -5,7 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 
-@SpringBootApplication(exclude = {RedisEmbeddingStoreAutoConfiguration.class})
+@SpringBootApplication(exclude = {RedisEmbeddingStoreAutoConfiguration.class}, scanBasePackages = {"com.shanyangcode.aiservice", "com.shanyangcode.common"})
 public class AiServiceApplication {
 
     public static void main(String[] args) {

@@ -17,4 +17,7 @@ public interface AiChat {
 
     @SystemMessage(fromResource = "system-prompt/chat-bot.txt")
     Flux<String> streamChat(@MemoryId Long sessionId, @UserMessage String prompt);
+
+    @SystemMessage(fromResource = "system-prompt/chat-summary.txt")
+    String chatSummary(@UserMessage String prompt);
 }
