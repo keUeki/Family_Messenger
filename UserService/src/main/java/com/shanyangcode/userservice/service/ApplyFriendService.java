@@ -1,6 +1,12 @@
 package com.shanyangcode.userservice.service;
 
+import java.util.List;
+
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.shanyangcode.common.model.dto.PageRequest;
+import com.shanyangcode.userservice.model.dto.ApplyFriendDTO;
+import com.shanyangcode.userservice.model.dto.ModifyFriendApplicationResponse;
 import com.shanyangcode.userservice.model.entity.ApplyFriend;
 
 /**
@@ -32,5 +38,38 @@ public interface ApplyFriendService extends IService<ApplyFriend> {
      */
     Long sendFriendRequest(Long senderId, Long receiverId, String message);
 
+    /**
+     * 分页查询与该用户相关的好友申请列表（含对方用户信息）
+     * <p>
+     * 列表同时包含"我发出的"和"我收到的"两类申请，
+     * 由返回结果中的 isReceiver 字段区分视角。
+     *
+     * @param userId      用户ID
+     * @param pageRequest 分页参数
+     * @return 申请DTO分页结果
+     */
+    IPage<ApplyFriendDTO> getReceivedRequestsWithUserInfo(Long userId, PageRequest pageRequest);
 
+    /**
+     * 查询未读好友申请数量
+     * <p>
+     * 只统计"我收到的"且状态为未读的申请。
+     *
+     * @param userId 用户ID
+     * @return 未读数量
+     */
+    int getUnreadCount(Long userId);
+
+    /**
+     * 修改好友申请状态
+     * <p>
+     * 仅允许改为通过(1)、拒绝(2)、已读(3)；
+     * 通过和拒绝时 senderIds 只能包含一个元素，已读时可批量。
+     *
+     * @param receiverId 接收者用户ID（当前操作人）
+     * @param senderIds  申请发送者用户ID列表
+     * @param status     目标状态码
+     * @return 通过申请时返回新建的会话信息，其他情况返回 null
+     */
+    ModifyFriendApplicationResponse modifyApplicationStatus(Long receiverId, List<Long> senderIds, Integer status);
 }

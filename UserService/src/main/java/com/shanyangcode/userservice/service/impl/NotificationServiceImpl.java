@@ -5,6 +5,7 @@ import com.shanyangcode.common.constant.MessageTypeConstant;
 import com.shanyangcode.common.utils.SnowflakeUtil;
 import com.shanyangcode.userservice.constants.KafkaTopicConstant;
 import com.shanyangcode.userservice.model.dto.FriendApplicationNotificationDTO;
+import com.shanyangcode.userservice.model.dto.NewSessionNotificationDTO;
 import com.shanyangcode.userservice.model.dto.SystemNotificationMessage;
 import com.shanyangcode.userservice.service.NotificationService;
 
@@ -72,6 +73,49 @@ public class NotificationServiceImpl implements NotificationService {
 
         } catch (Exception e) {
             log.error("发送好友申请通知失败，用户ID: {}, 错误: {}", userId, e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * 推送新会话通知
+     * <p>
+     * 实现逻辑：
+     * 1. 构建完整的SystemNotificationMessage
+     * 2. sessionId/sessionType 置于消息顶层，body 只放会话名和头像
+     * 3. senderId 为同意申请的一方，receiverId 为发起申请的一方
+     * 4. 发送到Kafka的system-notification-topic
+     * 5. RealTimeService消费后推送给在线用户
+     *
+     * @param senderId     触发该会话的用户ID（同意申请的一方）
+     * @param userId       接收通知的用户ID（发起申请的一方）
+     * @param sessionId    会话ID
+     * @param sessionType  会话类型（0-单聊，1-群聊，2-机器人）
+     * @param notification 新会话通知信息
+     */
+    @Override
+    public void pushNewSession(Long senderId, Long userId, Long sessionId, Integer sessionType,
+                               NewSessionNotificationDTO notification) {
+        try {
+            SystemNotificationMessage message = new SystemNotificationMessage();
+            message.setMessageId(generateMessageId());
+            message.setSessionId(sessionId);
+            message.setSenderId(senderId);
+            message.setReceiverId(userId);
+            message.setType(MessageTypeConstant.TYPE_SYSTEM_NEW_SESSION); // 102
+            message.setSessionType(sessionType);
+            message.setTimestamp(System.currentTimeMillis());
+
+            // 构建body
+            Map<String, Object> body = new HashMap<>();
+            body.put("sessionName", notification.getSessionName());
+            body.put("avatar", notification.getAvatar());
+            message.setBody(body);
+
+            sendNotification(message, "新会话通知");
+
+        } catch (Exception e) {
+            log.error("发送新会话通知失败，用户ID: {}, 会话ID: {}, 错误: {}", userId, sessionId, e.getMessage(), e);
         }
     }
 

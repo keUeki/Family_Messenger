@@ -1,4 +1,4 @@
-package com.shanyangcode.userservice.scheduer;
+package com.shanyangcode.userservice.scheduler;
 
 import java.util.Collections;
 import java.util.List;
@@ -9,6 +9,7 @@ import com.shanyangcode.userservice.model.dto.FriendRequestExpirationEvent;
 import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -48,7 +49,7 @@ public class FriendRequestExpirationDispatcher {
     public FriendRequestExpirationDispatcher(
             StringRedisTemplate redisTemplate,
             KafkaTemplate<String, String> kafkaTemplate,
-            DefaultRedisScript<List> scanExpiredScript) {
+            @Qualifier("scanExpiredFriendRequestsScript") DefaultRedisScript<List> scanExpiredScript) {
         this.redisTemplate = redisTemplate;
         this.kafkaTemplate = kafkaTemplate;
         this.scanExpiredScript = scanExpiredScript;
