@@ -12,4 +12,12 @@ public interface UserSessionService extends IService<UserSession> {
     List<Long> getUserIdBySessionId(Long sessionId);
 
     List<Long> getSessionIdsByUserId(Long userId);
+
+    /**
+     * 获取群聊成员数量
+     *
+     * @param sessionId 会话ID
+     * @return 群聊成员数量
+     */
+    int getGroupMemberCount(Long sessionId);
 }

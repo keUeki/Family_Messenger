@@ -3,6 +3,7 @@ package com.shanyangcode.realtimeservice.consumer;
 import java.util.Map;
 
 import com.shanyangcode.common.constant.CommonConstant;
+import com.shanyangcode.common.utils.OnlineStatusUtil;
 import com.shanyangcode.realtimeservice.websocket.ChannelManager;
 
 import cn.hutool.json.JSONUtil;
@@ -87,34 +88,37 @@ public class SystemNotificationConsumer {
             // 2. 获取用户的WebSocket Channel（使用静态方法）
             Channel channel = ChannelManager.getChannelByUserId(String.valueOf(receiverId));
 
-            // 3. 转发完整消息
-            TextWebSocketFrame frame = new TextWebSocketFrame(message);
-
-            channel.writeAndFlush(frame).addListener((ChannelFutureListener) future -> {
-                if (future.isSuccess()) {
-                    log.info("系统通知推送成功，messageId: {}, receiverId: {}, type: {}",
+            if (channel != null && channel.isActive()) {
+                // 3. 用户在线，直接转发完整消息
+                TextWebSocketFrame frame = new TextWebSocketFrame(message);
+                channel.writeAndFlush(frame).addListener((ChannelFutureListener) future -> {
+                    if (future.isSuccess()) {
+                        log.info("系统通知推送成功，messageId: {}, receiverId: {}, type: {}",
+                                messageId, receiverId, type);
+                    } else {
+                        log.error("系统通知推送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
+                                messageId, receiverId, type,
+                                future.cause() != null ? future.cause().getMessage() : "未知错误");
+                    }
+                });
+            } else {
+                // 4. 用户离线，转入持久化 topic
+                if (OnlineStatusUtil.isUserOffline(stringRedisTemplate, receiverId)) {
+                    log.info("用户离线，系统通知发送到Kafka进行持久化，messageId: {}, receiverId: {}, type: {}",
                             messageId, receiverId, type);
-                } else {
-                    log.error("系统通知推送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
-                            messageId, receiverId, type,
-                            future.cause() != null ? future.cause().getMessage() : "未知错误");
+
+                    kafkaTemplate.send(CommonConstant.KAFKA_STORE_NOTIFICATION_TOPIC, message)
+                            .whenComplete((result, ex) -> {
+                                if (ex == null) {
+                                    log.info("系统通知持久化消息发送成功，messageId: {}, receiverId: {}, type: {}",
+                                            messageId, receiverId, type);
+                                } else {
+                                    log.error("系统通知持久化消息发送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
+                                            messageId, receiverId, type, ex.getMessage());
+                                }
+                            });
                 }
-            });
-
-            // 4. 发送到Kafka进行持久化
-            log.info("用户离线，系统通知发送到Kafka进行持久化，messageId: {}, receiverId: {}, type: {}",
-                    messageId, receiverId, type);
-
-            kafkaTemplate.send(CommonConstant.KAFKA_STORE_NOTIFICATION_TOPIC, message).whenComplete((result, ex) -> {
-                if (ex == null) {
-                    log.info("系统通知持久化消息发送成功，messageId: {}, receiverId: {}, type: {}",
-                            messageId, receiverId, type);
-                } else {
-                    log.error("系统通知持久化消息发送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
-                            messageId, receiverId, type, ex.getMessage());
-                }
-            });
-
+            }
 
         } catch (Exception e) {
             log.error("处理系统通知消息失败，消息: {}, 错误: {}", message, e.getMessage(), e);

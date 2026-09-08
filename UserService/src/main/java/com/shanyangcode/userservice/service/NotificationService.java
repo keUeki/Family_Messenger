@@ -1,6 +1,8 @@
 package com.shanyangcode.userservice.service;
 
 import com.shanyangcode.userservice.model.dto.FriendApplicationNotificationDTO;
+import com.shanyangcode.userservice.model.dto.GroupKickNotificationDTO;
+import com.shanyangcode.userservice.model.dto.NewGroupSessionNotificationDTO;
 import com.shanyangcode.userservice.model.dto.NewSessionNotificationDTO;
 
 /**
@@ -36,4 +38,26 @@ public interface NotificationService {
      * @param notification 新会话通知信息（包含sessionName和avatar）
      */
     void pushNewSession(Long senderId, Long userId, Long sessionId, Integer sessionType, NewSessionNotificationDTO notification);
+
+    /**
+     * 推送新群聊会话通知
+     * <p>
+     * 场景：用户被邀请加入群聊
+     *
+     * @param userId       接收通知的用户ID
+     * @param sessionId    群聊会话ID
+     * @param notification 新群聊会话通知信息（包含sessionName和avatar）
+     */
+    void pushGroupNewSession(Long userId, Long sessionId, NewGroupSessionNotificationDTO notification);
+
+    /**
+     * 推送群聊踢出/退出通知
+     * <p>
+     * 场景：成员被踢出群聊（operatorId 为操作者），或成员主动退出群聊（operatorId 为 null）
+     *
+     * @param userId       接收通知的用户ID
+     * @param sessionId    群聊会话ID
+     * @param notification 踢出/退出通知信息（包含memberIds和operatorId）
+     */
+    void pushGroupKickNotification(Long userId, Long sessionId, GroupKickNotificationDTO notification);
 }

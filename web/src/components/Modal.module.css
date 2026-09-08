@@ -1,0 +1,68 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(20, 24, 43, 0.38);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  z-index: 1000;
+}
+
+.panel {
+  overflow: auto;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 40px);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.66);
+  box-shadow: 0 28px 80px rgba(17, 23, 44, 0.22), inset 0 0 0 1px rgba(30, 39, 65, 0.04);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 22px 9px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  z-index: 2;
+}
+
+.header h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 730;
+  letter-spacing: -0.035em;
+}
+
+.header button {
+  width: 34px;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--color-text-tertiary);
+  font-size: 23px;
+  font-weight: 400;
+}
+
+.body { padding: 9px 22px 22px; }
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  padding: 10px 22px 20px;
+  background: linear-gradient(to top, #fff 76%, rgba(255, 255, 255, 0));
+}
+
+@media (max-width: 520px) {
+  .backdrop { align-items: end; padding: 0; }
+  .panel { width: 100% !important; max-width: 100%; max-height: 88dvh; border-radius: 24px 24px 0 0; }
+}

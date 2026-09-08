@@ -1,0 +1,14 @@
+.btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-secondary);
+  background: transparent;
+  transition: background var(--duration-fast) var(--ease), color var(--duration-fast) var(--ease), transform var(--duration-fast) var(--ease);
+}
+
+.btn:hover { background: var(--color-bg-hover); color: var(--color-accent); }
+.btn:active { transform: scale(0.95); }
+.active { color: var(--color-accent); background: var(--color-accent-soft); }
