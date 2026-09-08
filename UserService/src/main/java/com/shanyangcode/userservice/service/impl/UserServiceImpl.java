@@ -9,7 +9,7 @@ import com.shanyangcode.common.common.ErrorCode;
 import com.shanyangcode.common.constant.CommonConstant;
 import com.shanyangcode.common.constant.SessionTypeConstant;
 import com.shanyangcode.common.exception.ThrowUtils;
-import com.shanyangcode.userservice.constant.UserConstant;
+import com.shanyangcode.userservice.constants.UserConstant;
 import com.shanyangcode.userservice.loadbalancer.NettyServiceLocator;
 import com.shanyangcode.userservice.mapper.UserMapper;
 import com.shanyangcode.userservice.model.dto.UpdateAvatarRequest;

@@ -6,7 +6,7 @@ import com.shanyangcode.common.common.BaseResponse;
 import com.shanyangcode.common.common.ErrorCode;
 import com.shanyangcode.common.common.ResultUtils;
 import com.shanyangcode.common.exception.ThrowUtils;
-import com.shanyangcode.userservice.constant.UserConstant;
+import com.shanyangcode.userservice.constants.UserConstant;
 import com.shanyangcode.userservice.model.dto.UpdateAvatarRequest;
 import com.shanyangcode.userservice.model.dto.UserLoginCodeRequest;
 import com.shanyangcode.userservice.model.dto.UserLoginPasswordRequest;
