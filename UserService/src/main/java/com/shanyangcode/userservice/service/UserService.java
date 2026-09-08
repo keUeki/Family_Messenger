@@ -1,10 +1,10 @@
 package com.shanyangcode.userservice.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.shanyangcode.userservice.model.dto.UpdateAvatarRequest;
-import com.shanyangcode.userservice.model.dto.UserLoginCodeRequest;
-import com.shanyangcode.userservice.model.dto.UserLoginPasswordRequest;
-import com.shanyangcode.userservice.model.dto.UserRegisterRequest;
+import com.shanyangcode.userservice.model.dto.request.UpdateAvatarRequest;
+import com.shanyangcode.userservice.model.dto.request.UserLoginCodeRequest;
+import com.shanyangcode.userservice.model.dto.request.UserLoginPasswordRequest;
+import com.shanyangcode.userservice.model.dto.request.UserRegisterRequest;
 import com.shanyangcode.userservice.model.entity.User;
 import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;

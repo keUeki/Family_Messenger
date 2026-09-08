@@ -44,13 +44,12 @@
         <spring-cloud-alibaba.version>2022.0.0.0-RC1</spring-cloud-alibaba.version>
     </properties>
     <dependencies>
-        <dependency>
-            <groupId>com.shanyangcode</groupId>
-            <artifactId>Common</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-            <scope>compile</scope>
-        </dependency>
-
+        <!--
+          注意：Common 不能在这里声明。
+          父 POM 的 dependencies 会被所有子模块继承，Common 自身也是子模块，
+          会构成"Common 依赖 Common"的循环，导致 Maven 无法读取工程。
+          各服务已在自己的 pom.xml 中单独声明对 Common 的依赖。
+        -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -71,6 +70,13 @@
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>3.5.12</version>
+        </dependency>
+
+        <!-- MyBatis-Plus 分页插件（PaginationInnerInterceptor）需要此依赖 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
             <version>3.5.12</version>
         </dependency>
 
