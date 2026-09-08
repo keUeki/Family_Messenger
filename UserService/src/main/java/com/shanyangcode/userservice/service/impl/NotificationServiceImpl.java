@@ -2,9 +2,12 @@ package com.shanyangcode.userservice.service.impl;
 
 
 import com.shanyangcode.common.constant.MessageTypeConstant;
+import com.shanyangcode.common.constant.SessionTypeConstant;
 import com.shanyangcode.common.utils.SnowflakeUtil;
 import com.shanyangcode.userservice.constants.KafkaTopicConstant;
 import com.shanyangcode.userservice.model.dto.FriendApplicationNotificationDTO;
+import com.shanyangcode.userservice.model.dto.GroupKickNotificationDTO;
+import com.shanyangcode.userservice.model.dto.NewGroupSessionNotificationDTO;
 import com.shanyangcode.userservice.model.dto.NewSessionNotificationDTO;
 import com.shanyangcode.userservice.model.dto.SystemNotificationMessage;
 import com.shanyangcode.userservice.service.NotificationService;
@@ -116,6 +119,88 @@ public class NotificationServiceImpl implements NotificationService {
 
         } catch (Exception e) {
             log.error("发送新会话通知失败，用户ID: {}, 会话ID: {}, 错误: {}", userId, sessionId, e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * 推送新群聊会话通知
+     *
+     * 实现逻辑：
+     * 1. 构建完整的SystemNotificationMessage
+     * 2. 生成唯一messageId
+     * 3. 将sessionId、sessionType提升到顶层
+     * 4. 发送到Kafka的system-notification-topic
+     * 5. RealTimeService消费后推送给在线用户
+     *
+     * @param userId       接收通知的用户ID
+     * @param sessionId    群聊会话ID
+     * @param notification 新群聊会话通知信息（仅包含sessionName和avatar）
+     */
+    @Override
+    public void pushGroupNewSession(Long userId, Long sessionId, NewGroupSessionNotificationDTO notification) {
+        try {
+            SystemNotificationMessage message = new SystemNotificationMessage();
+            message.setMessageId(generateMessageId());
+            message.setSessionId(sessionId);
+            message.setSenderId(null); // 系统消息
+            message.setReceiverId(userId);
+            message.setType(MessageTypeConstant.TYPE_SYSTEM_NEW_GROUP_SESSION); // 103
+            message.setSessionType(SessionTypeConstant.GROUP_TYPE); // 群聊固定为1
+            message.setTimestamp(System.currentTimeMillis());
+
+            // 构建body
+            Map<String, Object> body = new HashMap<>();
+            body.put("sessionName", notification.getSessionName());
+            body.put("avatar", notification.getAvatar());
+            body.put("creatorId", notification.getCreatorId());
+            body.put("membersCount", notification.getMembersCount());
+            message.setBody(body);
+
+            sendNotification(message, "群组邀请通知");
+
+        } catch (Exception e) {
+            log.error("发送新群聊会话通知失败，用户ID: {}, 会话ID: {}, 错误: {}", userId, sessionId, e.getMessage(), e);
+        }
+    }
+
+
+    /**
+     * 推送群聊踢出/退出通知
+     *
+     * 实现逻辑：
+     * 1. 构建完整的SystemNotificationMessage
+     * 2. 生成唯一messageId
+     * 3. 将sessionId、sessionType提升到顶层
+     * 4. 发送到Kafka的system-notification-topic
+     * 5. RealTimeService消费后推送给在线用户
+     *
+     * @param userId       接收通知的用户ID
+     * @param sessionId    群聊会话ID
+     * @param notification 踢出/退出通知信息（operatorId 为 null 表示主动退出）
+     */
+    @Override
+    public void pushGroupKickNotification(Long userId, Long sessionId, GroupKickNotificationDTO notification) {
+        try {
+            SystemNotificationMessage message = new SystemNotificationMessage();
+            message.setMessageId(generateMessageId());
+            message.setSessionId(sessionId);
+            message.setSenderId(null); // 系统消息
+            message.setReceiverId(userId);
+            message.setType(MessageTypeConstant.TYPE_SYSTEM_GROUP_KICK); // 104
+            message.setSessionType(SessionTypeConstant.GROUP_TYPE); // 群聊固定为1
+            message.setTimestamp(System.currentTimeMillis());
+
+            // 构建body
+            Map<String, Object> body = new HashMap<>();
+            body.put("memberIds", notification.getMemberIds());
+            body.put("operatorId", notification.getOperatorId());
+            message.setBody(body);
+
+            sendNotification(message, "群组踢出通知");
+
+        } catch (Exception e) {
+            log.error("发送群聊踢出通知失败，用户ID: {}, 会话ID: {}, 错误: {}", userId, sessionId, e.getMessage(), e);
         }
     }
 

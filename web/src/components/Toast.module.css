@@ -1,0 +1,35 @@
+.host {
+  position: fixed;
+  right: 22px;
+  bottom: calc(22px + var(--safe-bottom));
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  padding: 13px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  color: #fff;
+  background: var(--color-toast-bg);
+  box-shadow: 0 15px 38px rgba(24, 32, 51, 0.2);
+  backdrop-filter: blur(16px);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 580;
+  text-align: left;
+}
+
+.success { background: rgba(35, 126, 91, 0.95); }
+.error { background: rgba(172, 52, 66, 0.95); }
+.warning { background: rgba(153, 102, 27, 0.95); }
+.info { background: var(--color-toast-bg); }
+
+@media (max-width: 860px) {
+  .host { right: 16px; bottom: calc(76px + var(--safe-bottom)); }
+}

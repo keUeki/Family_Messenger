@@ -1,0 +1,28 @@
+.root {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 14px;
+  background: #eff1f6;
+  border: 1px solid rgba(30, 39, 65, 0.05);
+}
+
+.root button {
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 660;
+  transition: background var(--duration) var(--ease), color var(--duration) var(--ease), box-shadow var(--duration) var(--ease);
+}
+
+.root button:hover { color: var(--color-text); }
+
+.root .active {
+  color: var(--color-accent-deep);
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(30, 39, 65, 0.08), inset 0 0 0 1px rgba(30, 39, 65, 0.04);
+}

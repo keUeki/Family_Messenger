@@ -1,8 +1,10 @@
 package com.shanyangcode.userservice.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 
+import com.shanyangcode.common.enums.UserSessionStatusEnum;
 import com.shanyangcode.userservice.mapper.UserSessionMapper;
 import com.shanyangcode.userservice.model.entity.UserSession;
 import com.shanyangcode.userservice.service.UserSessionService;
@@ -31,5 +33,13 @@ public class UserSessionServiceImpl extends ServiceImpl<UserSessionMapper, UserS
         queryWrapper.eq("user_id", userId);
         List<UserSession> userSessions = this.list(queryWrapper);
         return userSessions.stream().map(UserSession::getSessionId).collect(Collectors.toList());
+    }
+
+    @Override
+    public int getGroupMemberCount(Long sessionId) {
+        LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserSession::getSessionId, sessionId)
+                .eq(UserSession::getStatus, UserSessionStatusEnum.NORMAL.getCode());
+        return Math.toIntExact(this.count(wrapper));
     }
 }
