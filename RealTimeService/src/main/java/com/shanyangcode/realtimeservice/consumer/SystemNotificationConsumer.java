@@ -102,22 +102,23 @@ public class SystemNotificationConsumer {
                     }
                 });
             } else {
-                // 4. 用户离线，转入持久化 topic
-                if (OnlineStatusUtil.isUserOffline(stringRedisTemplate, receiverId)) {
-                    log.info("用户离线，系统通知发送到Kafka进行持久化，messageId: {}, receiverId: {}, type: {}",
-                            messageId, receiverId, type);
+                // 4. 用户不在线（没有可用的 Channel），一律转入持久化 topic。
+                //    注意：user:offline: 标记只在用户断开连接时写入，从未连接过的用户不存在该标记，
+                //    因此不能把它作为是否持久化的判断条件，否则通知会被静默丢弃。
+                boolean offlineMarked = OnlineStatusUtil.isUserOffline(stringRedisTemplate, receiverId);
+                log.info("用户不在线，系统通知发送到Kafka进行持久化，messageId: {}, receiverId: {}, type: {}, 存在离线标记: {}",
+                        messageId, receiverId, type, offlineMarked);
 
-                    kafkaTemplate.send(CommonConstant.KAFKA_STORE_NOTIFICATION_TOPIC, message)
-                            .whenComplete((result, ex) -> {
-                                if (ex == null) {
-                                    log.info("系统通知持久化消息发送成功，messageId: {}, receiverId: {}, type: {}",
-                                            messageId, receiverId, type);
-                                } else {
-                                    log.error("系统通知持久化消息发送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
-                                            messageId, receiverId, type, ex.getMessage());
-                                }
-                            });
-                }
+                kafkaTemplate.send(CommonConstant.KAFKA_STORE_NOTIFICATION_TOPIC, message)
+                        .whenComplete((result, ex) -> {
+                            if (ex == null) {
+                                log.info("系统通知持久化消息发送成功，messageId: {}, receiverId: {}, type: {}",
+                                        messageId, receiverId, type);
+                            } else {
+                                log.error("系统通知持久化消息发送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
+                                        messageId, receiverId, type, ex.getMessage());
+                            }
+                        });
             }
 
         } catch (Exception e) {

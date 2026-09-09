@@ -9,9 +9,26 @@ import { mapJavaMessage } from '@/api/offline'
 
 export type WsStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'missing'
 
+/**
+ * 开发环境可用 VITE_WS_BASE 覆盖后端下发的地址，
+ * 交给 Vite 代理转发到 Netty，从而不依赖后端注册的局域网 IP。
+ */
+const WS_BASE_OVERRIDE = import.meta.env.VITE_WS_BASE ?? ''
+
+/** 把各种形态的地址补全成绝对的 ws:// / wss:// 地址。 */
+function toAbsoluteWsUrl(base: string) {
+  const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  if (/^wss?:\/\//i.test(base)) return base
+  if (/^https?:\/\//i.test(base)) return base.replace(/^http/i, 'ws')
+  if (base.startsWith('//')) return `${wsProtocol}${base}`
+  if (base.startsWith('/')) return `${wsProtocol}//${window.location.host}${base}`
+  // 兼容后端历史上返回的、不带协议的 host:port/path 形式
+  return `${wsProtocol}//${base}`
+}
+
 function buildWsUrl(base: string, token: string) {
   try {
-    const url = new URL(base, window.location.origin)
+    const url = new URL(toAbsoluteWsUrl(base))
     url.searchParams.set('accessToken', token)
     return url.toString()
   } catch {
@@ -48,7 +65,7 @@ export function useWebSocket() {
   }, [])
 
   const scheduleReconnect = useCallback(() => {
-    if (manualCloseRef.current || !userId || !token || !wsServerUri || reconnectRef.current) return
+    if (manualCloseRef.current || !userId || !token || !(WS_BASE_OVERRIDE || wsServerUri) || reconnectRef.current) return
     const delay = Math.min(1000 * 2 ** attemptRef.current, 16000)
     attemptRef.current += 1
     reconnectRef.current = window.setTimeout(() => {
@@ -71,7 +88,8 @@ export function useWebSocket() {
 
   const connect = useCallback(() => {
     if (!userId || !token) return
-    if (!wsServerUri) {
+    const wsBase = WS_BASE_OVERRIDE || wsServerUri
+    if (!wsBase) {
       setStatus('missing')
       return
     }
@@ -83,7 +101,7 @@ export function useWebSocket() {
       wsRef.current.close()
     }
     setStatus('connecting')
-    const socket = new WebSocket(buildWsUrl(wsServerUri, token))
+    const socket = new WebSocket(buildWsUrl(wsBase, token))
     wsRef.current = socket
 
     socket.onopen = () => {

@@ -8,7 +8,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { useWs } from '@/hooks/useWs'
 import { toast } from '@/stores/toastStore'
 import { uploadFile } from '@/utils'
-import type { BalanceLog } from '@/types'
 import { ApiError } from '@/api/client'
 import styles from './ProfilePage.module.css'
 
@@ -20,8 +19,6 @@ export function ProfilePage() {
   const setWsServerUri = useAuthStore((s) => s.setWsServerUri)
   const { connect } = useWs()
 
-  const [balance, setBalance] = useState<string>('0')
-  const [logs, setLogs] = useState<BalanceLog[]>([])
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [code, setCode] = useState('')
@@ -32,12 +29,6 @@ export function ProfilePage() {
   const load = async () => {
     try {
       await refreshProfile()
-      const [b, d] = await Promise.all([
-        userApi.getBalance(userId),
-        userApi.getBalanceDetail(userId),
-      ])
-      setBalance(String(b?.balance ?? 0))
-      setLogs(d?.list || [])
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : '加载失败')
     }
@@ -111,30 +102,6 @@ export function ProfilePage() {
       </section>
 
       <div className={styles.contentGrid}>
-      <section className={`${styles.panel} ${styles.wallet} card-lift`}>
-        <h4>账户余额</h4>
-        <div className={styles.balanceLine}>
-          <p className={styles.balance}><span>¥</span>{balance}</p>
-          <small>红包账户</small>
-        </div>
-        <div className={styles.panelDivider} />
-        <h5>最近明细</h5>
-        <div className={styles.logs}>
-          {logs.map((log, idx) => (
-            <div key={`${log.time}-${idx}`} className={styles.logItem}>
-              <div>
-                <strong>{log.userName || (log.type === 1 ? '收入' : '支出')}</strong>
-                <span>{log.time}</span>
-              </div>
-              <em className={log.type === 1 ? styles.in : styles.out}>
-                {log.type === 1 ? '+' : '-'}
-                {String(log.amount)}
-              </em>
-            </div>
-          ))}
-          {!logs.length ? <p className={styles.muted}>暂无明细</p> : null}
-        </div>
-      </section>
 
       <section className={`${styles.panel} card-lift`}>
         <div className={styles.panelTitle}><span>安全</span><h4>修改密码</h4><p>验证码确认后即可更新</p></div>

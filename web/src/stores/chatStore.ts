@@ -27,7 +27,6 @@ interface ChatState {
 function previewOf(msg: ChatMessage) {
   if (msg.type === MessageType.Image) return '[图片]'
   if (msg.type === MessageType.Emoji) return msg.body.content || '[表情]'
-  if (msg.type === MessageType.RedPacket) return `[红包] ${msg.body.redPacketWrapperText || ''}`
   return msg.body.content || ''
 }
 

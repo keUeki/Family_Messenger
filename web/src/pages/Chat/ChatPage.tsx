@@ -9,7 +9,6 @@ import { SkeletonList } from '@/components/Skeleton'
 import { IconButton } from '@/components/IconButton'
 import {
   IconImage,
-  IconPacket,
   IconRefresh,
   IconSearch,
   IconSend,
@@ -21,9 +20,8 @@ import { useWs } from '@/hooks/useWs'
 import { toast } from '@/stores/toastStore'
 import { formatDayLabel, formatTime, sameDay, uid, uploadFile } from '@/utils'
 import { userApi } from '@/api/user'
-import { redPacketApi } from '@/api/redpacket'
 import { aiApi } from '@/api/ai'
-import { MessageType, SessionType, AI_USER_ID, type ChatMessage, type EntityId, type RedPacketDetailVO } from '@/types'
+import { MessageType, SessionType, AI_USER_ID, type ChatMessage, type EntityId } from '@/types'
 import { ApiError } from '@/api/client'
 import styles from './ChatPage.module.css'
 
@@ -54,12 +52,6 @@ export function ChatPage() {
   const [text, setText] = useState('')
   const [query, setQuery] = useState('')
   const [showEmoji, setShowEmoji] = useState(false)
-  const [rpOpen, setRpOpen] = useState(false)
-  const [rpAmount, setRpAmount] = useState('1.00')
-  const [rpCount, setRpCount] = useState('1')
-  const [rpText, setRpText] = useState('恭喜发财')
-  const [rpType, setRpType] = useState(0)
-  const [detail, setDetail] = useState<RedPacketDetailVO | null>(null)
   const [lightbox, setLightbox] = useState<string | null>(null)
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const [knowledgeTitle, setKnowledgeTitle] = useState('')
@@ -334,59 +326,6 @@ export function ChatPage() {
     }
   }
 
-  const onSendRedPacket = async () => {
-    if (!active || !activeSessionId) return
-    const amount = Number(rpAmount)
-    const count = Number(rpCount)
-    if (!Number.isFinite(amount) || amount <= 0) {
-      toast.warning('请输入有效的红包金额')
-      return
-    }
-    if (!Number.isInteger(count) || count < 1 || count > 100) {
-      toast.warning('红包个数需为 1–100 的整数')
-      return
-    }
-    try {
-      const clientMessageId = uid('rp')
-      const peer = active.sessionType === SessionType.Single ? resolvePeer() || undefined : undefined
-      await redPacketApi.send({
-        senderId: userId,
-        sessionId: activeSessionId,
-        sessionType: active.sessionType,
-        receiverId: peer,
-        clientMessageId,
-        body: {
-          redPacketType: rpType,
-          totalAmount: rpAmount,
-          totalCount: Number(rpCount),
-          redPacketWrapperText: rpText,
-        },
-      })
-      setRpOpen(false)
-      toast.success('红包已发送')
-      await loadSessions(userId)
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '发红包失败')
-    }
-  }
-
-  const openRedPacket = async (redPacketId: string) => {
-    try {
-      const id = redPacketId.trim()
-      if (!/^\d+$/.test(id) || id === '0') throw new Error('红包信息无效')
-      try {
-        const result = await redPacketApi.receive(userId, id)
-        if (result.amount) toast.success(`领取 ${result.amount} 元`)
-        else if (result.message) toast.info(result.message)
-      } catch {
-        // already received or unavailable — still show detail
-      }
-      setDetail(await redPacketApi.detail(id))
-    } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '红包详情加载失败')
-    }
-  }
-
   return (
     <div
       className={[
@@ -550,7 +489,6 @@ export function ChatPage() {
                         ) : null}
                         <MessageBubble
                           message={m}
-                          onOpenRedPacket={openRedPacket}
                           onOpenImage={setLightbox}
                           onRetry={retryMessage}
                         />
@@ -615,9 +553,6 @@ export function ChatPage() {
                       aria-label="图片"
                     >
                       <IconImage size={18} />
-                    </IconButton>
-                    <IconButton onClick={() => setRpOpen(true)} title="红包" aria-label="红包">
-                      <IconPacket size={18} />
                     </IconButton>
                   </>
                 ) : null}
@@ -685,63 +620,6 @@ export function ChatPage() {
         )}
       </section>
 
-      <Modal
-        open={rpOpen}
-        title="发红包"
-        onClose={() => setRpOpen(false)}
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setRpOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={onSendRedPacket}>塞钱进红包</Button>
-          </>
-        }
-      >
-        <div className={styles.rpForm}>
-          <label className={styles.radioRow}>
-            <input type="radio" checked={rpType === 0} onChange={() => setRpType(0)} />
-            普通红包
-          </label>
-          <label className={styles.radioRow}>
-            <input type="radio" checked={rpType === 1} onChange={() => setRpType(1)} />
-            拼手气红包
-          </label>
-          <Input label="金额（元）" value={rpAmount} onChange={(e) => setRpAmount(e.target.value)} />
-          <Input label="个数" type="number" min="1" max="100" inputMode="numeric" value={rpCount} onChange={(e) => setRpCount(e.target.value)} />
-          <Input label="祝福语" value={rpText} onChange={(e) => setRpText(e.target.value)} />
-        </div>
-      </Modal>
-
-      <Modal open={Boolean(detail)} title="红包详情" onClose={() => setDetail(null)} width={480}>
-        {detail ? (
-          <div className={styles.rpDetail}>
-            <div className={styles.rpHero}>
-              <Avatar src={detail.senderAvatar} name={detail.senderNickname} size={48} />
-              <p>{detail.senderNickname} 的红包</p>
-              <h3>{detail.redPacketWrapperText || '恭喜发财'}</h3>
-              <strong>
-                {detail.receivedAmount} / {detail.totalAmount} 元
-              </strong>
-              <span>
-                已领 {detail.receivedCount}/{detail.totalCount}
-              </span>
-            </div>
-            <ul>
-              {detail.receiveRecords?.map((r) => (
-                <li key={`${r.receiverId}-${r.receivedAt}`}>
-                  <Avatar src={r.receiverAvatar} name={r.receiverNickname} size={32} />
-                  <div>
-                    <strong>{r.receiverNickname}</strong>
-                    <span>{r.receivedAt}</span>
-                  </div>
-                  <em>{r.amount} 元</em>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
-      </Modal>
 
       <Modal open={Boolean(lightbox)} title="图片" onClose={() => setLightbox(null)} width={640}>
         {lightbox ? <img className={styles.lightbox} src={lightbox} alt="预览" /> : null}
@@ -792,12 +670,10 @@ export function ChatPage() {
 
 function MessageBubble({
   message,
-  onOpenRedPacket,
   onOpenImage,
   onRetry,
 }: {
   message: ChatMessage
-  onOpenRedPacket: (id: string) => void
   onOpenImage: (url: string) => void
   onRetry: (m: ChatMessage) => void
 }) {
@@ -824,21 +700,6 @@ function MessageBubble({
         onClick={() => message.failed && onRetry(message)}
       >
         {message.body.content}
-      </button>
-    )
-  }
-  if (message.type === MessageType.RedPacket) {
-    return (
-      <button
-        type="button"
-        className={[styles.redpacket, failedClass].join(' ')}
-        onClick={() => {
-          if (message.failed) onRetry(message)
-          else if (message.body.redPacketId) onOpenRedPacket(message.body.redPacketId)
-        }}
-      >
-        <span>红包</span>
-        <strong>{message.body.redPacketWrapperText || '恭喜发财'}</strong>
       </button>
     )
   }

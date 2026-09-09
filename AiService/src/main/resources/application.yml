@@ -31,13 +31,13 @@ langchain4j:
   community:
     dashscope:
       chat-model:
-        model-name: qwen3.8-max
+        model-name: qwen-max
         api-key: ${DASHSCOPE_API_KEY}
       embedding-model:
         model-name: text-embedding-v4
         api-key: ${DASHSCOPE_API_KEY}
       streaming-chat-model:
-        model-name: qwen3.8-max
+        model-name: qwen-max
         api-key: ${DASHSCOPE_API_KEY}
 
 

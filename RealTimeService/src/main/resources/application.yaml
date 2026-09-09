@@ -31,11 +31,18 @@ spring:
     nacos:
       discovery:
         server-addr: localhost:18375
+        metadata:
+          # Netty WebSocket 实际监听端口，供 UserService 下发 nettyUri 时使用
+          netty-port: ${netty.port}
 
 
 
 server:
   port: 8102
+
+# Netty WebSocket 服务端口（与 Spring Boot 的 server.port 相互独立）
+netty:
+  port: 9101
 
 snowflake:
   workerId: 1

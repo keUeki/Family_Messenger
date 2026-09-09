@@ -8,12 +8,14 @@ import com.shanyangcode.common.common.ResultUtils;
 import com.shanyangcode.common.exception.ThrowUtils;
 import com.shanyangcode.userservice.constants.UserConstant;
 import com.shanyangcode.userservice.model.dto.request.UpdateAvatarRequest;
+import com.shanyangcode.userservice.model.dto.request.UpdatePasswordRequest;
 import com.shanyangcode.userservice.model.dto.request.UserLoginCodeRequest;
 import com.shanyangcode.userservice.model.dto.request.UserLoginPasswordRequest;
 import com.shanyangcode.userservice.model.dto.request.UserRegisterRequest;
 import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;
 import com.shanyangcode.userservice.model.vo.UploadUrlResponse;
+import com.shanyangcode.userservice.model.vo.UserInfoResponse;
 import com.shanyangcode.userservice.service.UserService;
 import com.shanyangcode.common.utils.JwtUtil;
 import io.jsonwebtoken.Claims;
@@ -78,6 +80,16 @@ public class UserController {
         return ResultUtils.success(userService.refreshToken(refreshToken));
     }
 
+
+    @GetMapping("/getUserInfo")
+    public BaseResponse<UserInfoResponse> getUserInfo(@RequestParam Long userId) {
+        return ResultUtils.success(userService.getUserInfo(userId));
+    }
+
+    @PostMapping("/updatePassword")
+    public BaseResponse<Boolean> updatePassword(@Valid @RequestBody UpdatePasswordRequest updatePasswordRequest) {
+        return ResultUtils.success(userService.updatePassword(updatePasswordRequest));
+    }
 
     @GetMapping("/refresh/uri")
     public BaseResponse<String> refreshUri(@RequestParam Long userId) {

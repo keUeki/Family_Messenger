@@ -43,6 +43,10 @@ public class ConsumerMessageService {
         System.out.println("收到消息：" + message);
         MessageRequest messageRequest = JSONUtil.toBean(message, MessageRequest.class);
         System.out.println("收到消息：" + messageRequest);
+        if (messageRequest.getSessionType() == null) {
+            log.error("消息缺少 sessionType，无法路由，丢弃消息: {}", message);
+            return;
+        }
         if (messageRequest.getSessionType() == SessionTypeConstant.SIGNAL_TYPE) {
             signalMessage(messageRequest);
         } else if (messageRequest.getSessionType() == SessionTypeConstant.GROUP_TYPE) {
@@ -107,8 +111,12 @@ public class ConsumerMessageService {
     }
 
     public void pushMessageToUser(MessageResponse messageResponse, Long receiverId) {
+        if (receiverId == null) {
+            log.warn("接收者为空，跳过推送: {}", messageResponse);
+            return;
+        }
         Channel channel = ChannelManager.getChannelByUserId(receiverId.toString());
-        if (channel != null) {
+        if (channel != null && channel.isActive()) {
             TextWebSocketFrame frame = new TextWebSocketFrame(JSONUtil.toJsonStr(messageResponse));
             channel.writeAndFlush(frame).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
@@ -118,7 +126,7 @@ public class ConsumerMessageService {
                 }
             });
         } else {
-            log.info("channel 不存在");
+            log.info("channel 不存在或已关闭，接收者: {}", receiverId);
         }
     }
 
