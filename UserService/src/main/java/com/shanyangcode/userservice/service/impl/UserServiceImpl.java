@@ -13,6 +13,7 @@ import com.shanyangcode.userservice.constants.UserConstant;
 import com.shanyangcode.userservice.loadbalancer.NettyServiceLocator;
 import com.shanyangcode.userservice.mapper.UserMapper;
 import com.shanyangcode.userservice.model.dto.request.UpdateAvatarRequest;
+import com.shanyangcode.userservice.model.dto.request.UpdatePasswordRequest;
 import com.shanyangcode.userservice.model.dto.request.UserLoginCodeRequest;
 import com.shanyangcode.userservice.model.dto.request.UserLoginPasswordRequest;
 import com.shanyangcode.userservice.model.dto.request.UserRegisterRequest;
@@ -22,6 +23,7 @@ import com.shanyangcode.userservice.model.entity.Session;
 import com.shanyangcode.userservice.model.vo.LoginAndRegisterResponse;
 import com.shanyangcode.userservice.model.vo.TokenResponse;
 import com.shanyangcode.userservice.model.vo.UploadUrlResponse;
+import com.shanyangcode.userservice.model.vo.UserInfoResponse;
 import com.shanyangcode.userservice.service.SessionService;
 import com.shanyangcode.userservice.service.UserService;
 
@@ -290,6 +292,54 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         queryWrapper.in("user_id", userIds);
         List<User> users = this.list(queryWrapper);
         return users.stream().collect(Collectors.toMap(User::getUserId, User::getNickname));
+    }
+
+    @Override
+    public UserInfoResponse getUserInfo(Long userId) {
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+
+        User user = this.getById(userId);
+        ThrowUtils.throwIf(user == null, ErrorCode.USER_NOT_EXISTS);
+
+        UserInfoResponse userInfoResponse = new UserInfoResponse();
+        userInfoResponse.setUserId(String.valueOf(user.getUserId()));
+        userInfoResponse.setAccount(user.getEmail());
+        userInfoResponse.setNickname(user.getNickname());
+        userInfoResponse.setAvatar(user.getAvatar());
+        userInfoResponse.setGender(user.getGender());
+        userInfoResponse.setDescription(user.getDescription());
+        return userInfoResponse;
+    }
+
+    @Override
+    public Boolean updatePassword(UpdatePasswordRequest updatePasswordRequest) {
+        String email = updatePasswordRequest.getEmail();
+        String code = updatePasswordRequest.getCode();
+
+        // 1. 校验验证码
+        String redisCode = stringRedisTemplate.opsForValue().get(email);
+        ThrowUtils.throwIf(StringUtils.isBlank(redisCode) || !code.equals(redisCode), ErrorCode.LOGIN_ERROR_CODE);
+
+        // 2. 校验两次密码是否一致
+        ThrowUtils.throwIf(!updatePasswordRequest.getPassword().equals(updatePasswordRequest.getConfirmPassword()),
+                ErrorCode.LoginPasswordError);
+
+        // 3. 校验用户是否存在
+        User user = getUser(email);
+        ThrowUtils.throwIf(user == null, ErrorCode.USER_NOT_EXISTS);
+
+        // 4. 更新密码
+        String encryptedPassword = DigestUtils.md5DigestAsHex(
+                (UserConstant.PASSWORD_SALT + updatePasswordRequest.getPassword()).getBytes());
+        user.setPassword(encryptedPassword);
+        boolean updated = this.updateById(user);
+        ThrowUtils.throwIf(!updated, ErrorCode.SYSTEM_ERROR);
+
+        // 5. 验证码一次性使用，并且密码变更后强制重新登录
+        stringRedisTemplate.delete(email);
+        logout(String.valueOf(user.getUserId()));
+        log.info("用户 {} 修改密码成功，已清理登录态", user.getUserId());
+        return true;
     }
 }
 

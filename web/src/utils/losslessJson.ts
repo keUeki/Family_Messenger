@@ -7,7 +7,6 @@ const ID_KEYS = [
   'receiverId',
   'sessionId',
   'messageId',
-  'redPacketId',
   'notificationId',
   'operatorId',
   'creatorId',

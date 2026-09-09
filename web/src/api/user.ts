@@ -1,5 +1,5 @@
 import { http, unwrap } from './client'
-import type { BalanceLog, EntityId, LoginResponse, PageResponse, UserInfo } from '@/types'
+import type { EntityId, LoginResponse, UserInfo } from '@/types'
 
 type JavaLogin = {
   userId: EntityId
@@ -93,13 +93,5 @@ export const userApi = {
   },
   updateAvatar(userId: EntityId, uri: string) {
     return unwrap<boolean>(http.post('/api/user/update/avatar', { userId, uri }))
-  },
-  getBalance(userId: EntityId) {
-    return unwrap<{ balance: string | number }>(http.get(`/api/user/balance/${userId}`))
-  },
-  getBalanceDetail(userId: EntityId, pageNum = 1, pageSize = 20) {
-    return unwrap<PageResponse<BalanceLog>>(
-      http.get(`/api/user/balanceDetail/${userId}`, { params: { pageNum, pageSize } }),
-    )
   },
 }

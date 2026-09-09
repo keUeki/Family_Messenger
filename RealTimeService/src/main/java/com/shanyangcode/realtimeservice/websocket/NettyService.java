@@ -14,15 +14,19 @@ import io.netty.util.NettyRuntime;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 public class NettyService {
 
-    private final int port = 9101;
+    @Value("${netty.port:9101}")
+    private int port;
 
     private final NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
 
@@ -56,6 +60,7 @@ public class NettyService {
                 });
 
         serverBootstrap.bind(port).sync();
+        log.info("Netty WebSocket 服务已启动，监听端口: {}, 路径: {}", port, "/ws/netty");
     }
 
     @PreDestroy

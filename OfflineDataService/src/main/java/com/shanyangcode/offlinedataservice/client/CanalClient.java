@@ -47,7 +47,7 @@ public class CanalClient implements CommandLineRunner {
     private static final long HEARTBEAT_INTERVAL = 30000; // 30秒发送一次心跳
 
     private static final long IDLE_CHECK_INTERVAL = 5000; // 5秒检查一次空闲状态
-    // 需要监听的表名集合
+    // 需要监听的表名集合（全部小写，MySQL 的库名/表名大小写在不同平台上不一致）
     private static final Set<String> MONITOR_TABLES = Set.of("infinitechat.message");
 
     @Override
@@ -199,7 +199,9 @@ public class CanalClient implements CommandLineRunner {
 
             log.info("====== 收到变更: fullTableName={} ======", fullTableName);
 
-            if (!MONITOR_TABLES.contains(fullTableName)) {
+            // binlog 中的库名为 InfiniteChat，与配置的小写表名对比时必须忽略大小写，
+            // 否则所有消息变更都会被丢弃，Redis 热数据永远为空，历史消息也就查不到。
+            if (!MONITOR_TABLES.contains(fullTableName.toLowerCase(Locale.ROOT))) {
                 continue;
             }
 

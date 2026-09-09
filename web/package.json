@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test test/*.test.mjs",
+    "test": "node --experimental-strip-types --import ./test/register-hooks.mjs --test test/*.test.mjs",
     "test:integration": "node test/integration-smoke.mjs",
     "preview": "vite preview"
   },

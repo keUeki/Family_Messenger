@@ -87,8 +87,6 @@ export interface OfflineSession {
 export interface MessageBody {
   content?: string
   replyId?: EntityId | null
-  redPacketId?: string
-  redPacketWrapperText?: string
 }
 
 export interface ChatMessage {
@@ -239,64 +237,10 @@ export interface SystemNotification {
   updatedTime?: string
 }
 
-export interface BalanceLog {
-  userName: string
-  type: number
-  amount: string | number
-  time: string
-}
-
-export interface RedPacketSendVO {
-  redPacketId: EntityId
-  messageId: EntityId
-}
-
-export interface ReceiveResultVO {
-  status: number
-  message: string
-  amount?: string
-}
-
-export interface RedPacketDetailVO {
-  redPacketId: EntityId
-  senderId: EntityId
-  senderNickname: string
-  senderAvatar: string
-  sessionId: EntityId
-  sessionType: number
-  redPacketWrapperText: string
-  redPacketType: number
-  totalAmount: string
-  totalCount: number
-  receivedCount: number
-  receivedAmount: string
-  status: number
-  createdTime: string
-  receiveRecords: Array<{
-    receiverId: EntityId
-    receiverNickname: string
-    receiverAvatar: string
-    amount: string
-    receivedAt: string
-  }>
-}
-
-export interface RedPacketBasicVO {
-  redPacketId: EntityId
-  redPacketType: number
-  totalAmount: string
-  totalCount: number
-  receivedCount: number
-  receivedAmount: string
-  status: number
-  createdTime: string
-}
-
 export const MessageType = {
   Text: 0,
   Image: 1,
   Emoji: 2,
-  RedPacket: 3,
 } as const
 
 export const SessionType = {

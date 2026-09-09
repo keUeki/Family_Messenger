@@ -57,26 +57,11 @@
 
 .contentGrid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr); gap: 14px; max-width: 1040px; align-items: start; }
 .panel { padding: 20px; border: 1px solid var(--color-border); border-radius: 19px; background: rgba(255, 255, 255, 0.94); box-shadow: var(--shadow-sm); }
-.wallet { grid-row: span 2; }
 .panel > h4 { margin: 0 0 9px; color: var(--color-text-secondary); font-size: 11px; font-weight: 680; }
 .panelTitle { margin-bottom: 14px; }
 .panelTitle span { display: block; margin-bottom: 3px; color: var(--color-accent); font-size: 8px; font-weight: 760; letter-spacing: 0.12em; }
 .panelTitle h4 { margin: 0; font-size: 15px; font-weight: 720; }
 .panelTitle p { margin: 3px 0 0; color: var(--color-text-tertiary); font-size: 10px; }
-
-.balanceLine { display: flex; align-items: end; justify-content: space-between; gap: 14px; }
-.balance { margin: 0; color: var(--color-text); font-size: 42px; font-weight: 760; letter-spacing: -0.055em; line-height: 1; font-variant-numeric: tabular-nums; }
-.balance span { margin-right: 5px; color: var(--color-accent); font-size: 18px; }
-.balanceLine small { padding-bottom: 4px; color: var(--color-text-tertiary); font-size: 9px; }
-.panelDivider { height: 1px; margin: 18px 0 14px; background: var(--color-border); }
-.panel h5 { margin: 0 0 8px; color: var(--color-text-secondary); font-size: 11px; }
-.logs { display: flex; flex-direction: column; max-height: 310px; overflow: auto; }
-.logItem { display: flex; align-items: center; justify-content: space-between; min-height: 48px; padding: 8px 2px; border-bottom: 1px solid var(--color-border); }
-.logItem strong { display: block; font-size: 12px; }
-.logItem span { display: block; color: var(--color-text-tertiary); font-size: 10px; }
-.logItem em { font-size: 12px; font-style: normal; font-weight: 700; }
-.in { color: var(--color-success); }
-.out { color: var(--color-danger); }
 
 .form { display: flex; flex-direction: column; gap: 11px; }
 .row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: end; }
@@ -87,7 +72,6 @@
 
 @media (max-width: 980px) {
   .contentGrid { grid-template-columns: 1fr; }
-  .wallet { grid-row: auto; }
 }
 
 @media (max-width: 860px) {
