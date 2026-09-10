@@ -5,16 +5,16 @@ import com.shanyangcode.common.model.dto.PageResponse;
 import com.shanyangcode.userservice.model.dto.response.UserGroupDTO;
 
 /**
- * 用户群聊列表服务接口
+ * User group list service
  */
 public interface UserGroupService {
 
     /**
-     * 分页查询用户加入的群聊列表
+     * Returns a page of the groups the user belongs to
      *
-     * @param userId      用户ID
-     * @param pageRequest 分页参数
-     * @return 用户群聊分页结果
+     * @param userId      the user id
+     * @param pageRequest the pagination parameters
+     * @return a page of the user's groups
      */
     PageResponse<UserGroupDTO> getUserGroups(Long userId, PageRequest pageRequest);
 }

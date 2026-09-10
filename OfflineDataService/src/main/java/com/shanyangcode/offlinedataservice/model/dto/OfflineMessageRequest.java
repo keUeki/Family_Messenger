@@ -5,12 +5,12 @@ import lombok.Data;
 @Data
 public class OfflineMessageRequest {
     /**
-     * 用户ID
+     * User id
      */
     private Long userId;
     
     /**
-     * 离线时间戳（毫秒）
+     * Offline timestamp, in milliseconds
      */
     private Long offlineTime;
     

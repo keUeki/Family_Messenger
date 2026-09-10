@@ -16,17 +16,17 @@ import java.util.Map;
 public class NettyServiceLocator {
 
     /**
-     * RealTimeService 在 Nacos 中注册的 Netty 端口元数据 key
+     * Metadata key under which RealTimeService registers its Netty port in Nacos
      */
     private static final String NETTY_PORT_METADATA_KEY = "netty-port";
 
     /**
-     * 兜底端口，与 RealTimeService 的 netty.port 默认值保持一致
+     * Fallback port, kept in step with the default of RealTimeService's netty.port
      */
     private static final int DEFAULT_NETTY_PORT = 9101;
 
     /**
-     * WebSocket 协议前缀，前端需要带 scheme 的完整地址才能建立连接
+     * WebSocket scheme prefix; the client needs a full address including the scheme to connect
      */
     private static final String WS_SCHEME = "ws://";
 
@@ -37,7 +37,7 @@ public class NettyServiceLocator {
     public String getServiceInstance(String userId){
         List<ServiceInstance> instances = discoveryClient.getInstances(CommonConstant.DISCOVERY_CLIENT_NAME);
         if (instances.isEmpty()) {
-            log.warn("Nacos 中没有可用的 {} 实例，无法下发 nettyUri", CommonConstant.DISCOVERY_CLIENT_NAME);
+            log.warn("No usable {} instance in Nacos, cannot hand out a nettyUri", CommonConstant.DISCOVERY_CLIENT_NAME);
             return null;
         }
         ServiceInstance instance = new UrlHashLoadBalancer().select(instances, userId);
@@ -46,8 +46,8 @@ public class NettyServiceLocator {
     }
 
     /**
-     * Netty 监听的端口与 Spring Boot 的 server.port 不同，
-     * 需要从注册中心的元数据里读取，读取不到时回退到默认端口。
+     * The Netty listen port differs from Spring Boot's server.port, so it is read from the
+     * registry metadata, falling back to the default port when it is absent.
      */
     private int resolveNettyPort(ServiceInstance instance) {
         Map<String, String> metadata = instance.getMetadata();
@@ -56,11 +56,11 @@ public class NettyServiceLocator {
             try {
                 return Integer.parseInt(nettyPort.trim());
             } catch (NumberFormatException e) {
-                log.warn("{} 实例的 {} 元数据不是合法端口: {}，回退到默认端口 {}",
+                log.warn("The {} metadata on the {} instance is not a valid port: {}, falling back to the default port {}",
                         CommonConstant.DISCOVERY_CLIENT_NAME, NETTY_PORT_METADATA_KEY, nettyPort, DEFAULT_NETTY_PORT);
             }
         } else {
-            log.warn("{} 实例未注册 {} 元数据，回退到默认端口 {}",
+            log.warn("The {} instance did not register {} metadata, falling back to the default port {}",
                     CommonConstant.DISCOVERY_CLIENT_NAME, NETTY_PORT_METADATA_KEY, DEFAULT_NETTY_PORT);
         }
         return DEFAULT_NETTY_PORT;

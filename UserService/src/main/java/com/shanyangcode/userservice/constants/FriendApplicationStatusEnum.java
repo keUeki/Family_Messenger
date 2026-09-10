@@ -2,22 +2,22 @@
 package com.shanyangcode.userservice.constants;
 
 /**
- * 好友申请状态枚举
+ * Friend request status enum
  *
- * 数据库存储值说明：
- * - 0: 未读（接收者未查看）
- * - 1: 通过（接收者同意好友申请）
- * - 2: 拒绝（接收者拒绝好友申请）
- * - 3: 已读（接收者已查看但未处理）
- * - 4: 过期（申请超时未处理）
+ * Stored values:
+ * - 0: unread (the receiver has not looked at it)
+ * - 1: accepted (the receiver approved the request)
+ * - 2: rejected (the receiver declined the request)
+ * - 3: read (the receiver has seen it but not acted on it)
+ * - 4: expired (the request timed out without being handled)
  */
 public enum FriendApplicationStatusEnum {
 
-    UNREAD(0, "未读"),
-    ACCEPTED(1, "通过"),
-    REJECTED(2, "拒绝"),
-    READ(3, "已读"),
-    EXPIRED(4, "过期");
+    UNREAD(0, "Unread"),
+    ACCEPTED(1, "Accepted"),
+    REJECTED(2, "Rejected"),
+    READ(3, "Read"),
+    EXPIRED(4, "Expired");
 
     private final int code;
     private final String description;
@@ -36,6 +36,6 @@ public enum FriendApplicationStatusEnum {
                 return status;
             }
         }
-        throw new IllegalArgumentException("无效的好友申请状态码: " + code);
+        throw new IllegalArgumentException("Invalid friend request status code: " + code);
     }
 }

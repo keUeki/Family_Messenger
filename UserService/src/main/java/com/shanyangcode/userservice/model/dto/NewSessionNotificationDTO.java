@@ -6,12 +6,12 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 新会话通知DTO（消息体body部分）
+ * New session notification DTO (the message body)
  * <p>
- * 场景：好友申请通过后，系统创建新的单聊会话，通知申请方。
+ * Scenario: once a friend request is accepted the system creates a one-to-one session and notifies the requester.
  * <p>
- * 注意：sessionId、sessionType 等字段位于 SystemNotificationMessage 顶层，
- * 此DTO仅作为 SystemNotificationMessage.body 的内容。
+ * Note: fields such as sessionId and sessionType live at the top level of SystemNotificationMessage;
+ * this DTO is only the content of SystemNotificationMessage.body.
  */
 @Data
 public class NewSessionNotificationDTO implements Serializable {
@@ -20,12 +20,12 @@ public class NewSessionNotificationDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 会话名称（通常是对方用户昵称）
+     * Session name (usually the other party's nickname)
      */
     private String sessionName;
 
     /**
-     * 头像URL
+     * Avatar URL
      */
     private String avatar;
 }

@@ -6,24 +6,24 @@ import jakarta.validation.constraints.Pattern;
 import lombok.Data;
 
 /**
- * 用户密码登录 DTO
+ * Verification-code login DTO
  */
 @Data
 public class UserLoginCodeRequest {
 
     /**
-     * 邮箱
+     * Email address
      */
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
+    @NotBlank(message = "Email address must not be blank")
+    @Email(message = "Email address is not valid")
     private String email;
 
 
     /**
-     * 验证码
+     * Verification code
      */
-    @NotBlank(message = "验证码不能为空")
-    @Pattern(regexp = "^\\d{6}$", message = "验证码必须是6位数字")
+    @NotBlank(message = "Verification code must not be blank")
+    @Pattern(regexp = "^\\d{6}$", message = "Verification code must be 6 digits")
     private String code;
 }
 

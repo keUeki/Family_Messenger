@@ -39,7 +39,7 @@ public class UserController {
     private UserService userService;
 
     @GetMapping("/sendCaptcha")
-    public BaseResponse<String> sendCaptcha(@NotBlank(message = "邮箱不能为空") @Email(message = "邮箱格式不正确")  @RequestParam String targetEmail) {
+    public BaseResponse<String> sendCaptcha(@NotBlank(message = "Email address must not be blank") @Email(message = "Email address is not valid")  @RequestParam String targetEmail) {
 
         userService.sendCaptcha(targetEmail);
         return ResultUtils.success(UserConstant.SEND_EMAIL_SUCCESS);

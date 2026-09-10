@@ -43,17 +43,17 @@ public class CanalConfig {
 
     @Bean
     public CanalConnector canalConnector() {
-        // 创建连接器时设置系统属性
+        // Set the system properties when creating the connector
         System.setProperty("canal.client.heartbeat.interval", String.valueOf(heartbeatInterval));
         System.setProperty("canal.client.heartbeat.timeout", String.valueOf(heartbeatTimeout));
         System.setProperty("canal.client.socket.timeout", String.valueOf(socketTimeout));
 
         CanalConnector connector = CanalConnectors.newSingleConnector(new InetSocketAddress(canalHost, canalPort), destination, username, password);
-        log.info("尝试连接 Canal 服务端: {}:{}", canalHost, canalPort);
+        log.info("Connecting to the Canal server: {}:{}", canalHost, canalPort);
 
 
         connector.connect();
-        log.info("Canal 连接成功，destination={}", destination);
+        log.info("Connected to Canal, destination={}", destination);
         connector.subscribe(filter);
         connector.rollback();
 

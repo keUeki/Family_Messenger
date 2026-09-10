@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * 踢出群成员请求DTO
+ * Remove-group-members request DTO
  */
 @Data
 public class KickGroupMembersRequest implements Serializable {
@@ -17,22 +17,22 @@ public class KickGroupMembersRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 会话ID
+     * Session id
      * <p>
-     * 使用 String 传输，避免前端 JS Number 精度截断雪花ID
+     * Sent as a String so a JS Number on the client cannot truncate the snowflake id
      */
-    @NotNull(message = "会话ID不能为空")
+    @NotNull(message = "Session id must not be null")
     private String sessionId;
 
     /**
-     * 操作者用户ID（群主或管理员）
+     * Actor's user id (the group owner or an admin)
      */
-    @NotNull(message = "操作者ID不能为空")
+    @NotNull(message = "Actor id must not be null")
     private Long operatorId;
 
     /**
-     * 被踢出的成员用户ID列表
+     * User ids of the members being removed
      */
-    @NotNull(message = "成员ID列表不能为空")
+    @NotNull(message = "Member id list must not be null")
     private List<Long> memberIds;
 }

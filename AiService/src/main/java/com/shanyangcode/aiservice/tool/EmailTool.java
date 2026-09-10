@@ -15,21 +15,21 @@ public class EmailTool {
     @Resource
     private JavaMailSender mailSender;
 
-    // 从配置文件读取发件人，避免硬编码
+    // Read the sender from configuration instead of hard-coding it
     @Value("${spring.mail.username}")
     private String fromEmail;
 
     /**
-     * 发送简单文本邮件
-     * 提示词让大模型知道参数的含义：
-     * targetEmail: 接收人的邮箱地址
-     * subject: 邮件标题
-     * content: 邮件正文内容
+     * Sends a plain-text email
+     * The description tells the model what each parameter means:
+     * targetEmail: the recipient's email address
+     * subject: the email subject
+     * content: the email body
      */
-    @Tool("向特定用户发送电子邮件。")
+    @Tool("Send an email to a specific user.")
     public String sendEmail(String targetEmail, String subject, String content) {
         try {
-            log.info("Tool 调用: 正在发送邮件 -> To: {}, Subject: {}", targetEmail, subject);
+            log.info("Tool invoked: sending email -> To: {}, Subject: {}", targetEmail, subject);
             
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
@@ -39,11 +39,11 @@ public class EmailTool {
 
             mailSender.send(message);
             
-            log.info("邮件发送成功");
-            return "邮件已成功发送给 " + targetEmail;
+            log.info("Email sent successfully");
+            return "Email sent successfully to " + targetEmail;
         } catch (Exception e) {
-            log.error("邮件发送失败", e);
-            return "邮件发送失败: " + e.getMessage();
+            log.error("Failed to send the email", e);
+            return "Failed to send the email: " + e.getMessage();
         }
     }
 }

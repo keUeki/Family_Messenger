@@ -22,16 +22,16 @@ public class EmailUtil {
 
     public void sendEmail(String targetEmail, String randomCode) {
         try {
-            log.info("正在发送邮件 -> To: {}, Subject: {}", targetEmail, UserConstant.EMAIL_SUBJECT);
+            log.info("Sending email -> To: {}, Subject: {}", targetEmail, UserConstant.EMAIL_SUBJECT);
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom(fromEmail);
             message.setTo(targetEmail);
             message.setSubject(UserConstant.EMAIL_SUBJECT);
-            message.setText("您的验证码为:" + randomCode + "(五分钟内有效)");
+            message.setText("Your verification code is: " + randomCode + " (valid for five minutes)");
             mailSender.send(message);
-            log.info("邮件发送成功");
+            log.info("Email sent successfully");
         } catch (Exception e) {
-            log.error("邮件发送失败", e);
+            log.error("Failed to send the email", e);
         }
     }
 }

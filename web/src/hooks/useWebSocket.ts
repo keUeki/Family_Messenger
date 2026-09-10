@@ -10,19 +10,19 @@ import { mapJavaMessage } from '@/api/offline'
 export type WsStatus = 'idle' | 'connecting' | 'open' | 'closed' | 'missing'
 
 /**
- * 开发环境可用 VITE_WS_BASE 覆盖后端下发的地址，
- * 交给 Vite 代理转发到 Netty，从而不依赖后端注册的局域网 IP。
+ * In development VITE_WS_BASE can override the address the backend hands out, so the
+ * Vite proxy forwards to Netty and nothing depends on the LAN IP registered by the backend.
  */
 const WS_BASE_OVERRIDE = import.meta.env.VITE_WS_BASE ?? ''
 
-/** 把各种形态的地址补全成绝对的 ws:// / wss:// 地址。 */
+/** Normalises the various address shapes into an absolute ws:// or wss:// URL. */
 function toAbsoluteWsUrl(base: string) {
   const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
   if (/^wss?:\/\//i.test(base)) return base
   if (/^https?:\/\//i.test(base)) return base.replace(/^http/i, 'ws')
   if (base.startsWith('//')) return `${wsProtocol}${base}`
   if (base.startsWith('/')) return `${wsProtocol}//${window.location.host}${base}`
-  // 兼容后端历史上返回的、不带协议的 host:port/path 形式
+  // Accepts the protocol-less host:port/path form the backend used to return
   return `${wsProtocol}//${base}`
 }
 
@@ -120,7 +120,7 @@ export function useWebSocket() {
         if (value && value.type === 'ERROR') {
           const error = value as unknown as MessageErrorResponse
           if (error.clientMessageId) markMessageFailed(error.clientMessageId)
-          toast.error(error.errorMessage || '消息发送失败')
+          toast.error(error.errorMessage || 'Failed to send the message')
           return
         }
         const message = mapJavaMessage(value as Parameters<typeof mapJavaMessage>[0])
@@ -136,7 +136,7 @@ export function useWebSocket() {
           }
         }
       } catch {
-        toast.warning('收到无法解析的实时消息')
+        toast.warning('Received a realtime message that could not be parsed')
       }
     }
 
@@ -156,7 +156,7 @@ export function useWebSocket() {
 
   const send = useCallback((payload: MessageRequest) => {
     const socket = wsRef.current
-    if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error('实时连接未就绪')
+    if (!socket || socket.readyState !== WebSocket.OPEN) throw new Error('The realtime connection is not ready')
     socket.send(JSON.stringify(payload))
   }, [])
 

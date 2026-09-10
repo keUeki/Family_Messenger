@@ -8,28 +8,28 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * MyBatis-Plus 统一配置
+ * Shared MyBatis-Plus configuration
  * <p>
- * 说明：此配置类位于 Common 模块，通过各服务的 scanBasePackages 被自动扫描加载
+ * Note: this class lives in the Common module and is picked up automatically via each service's scanBasePackages.
  */
 @Configuration
 public class MybatisPlusConfig {
 
     /**
-     * 分页插件配置
+     * Pagination plugin configuration
      * <p>
-     * 未注册该拦截器时，selectPage 不会生成 LIMIT 子句，
-     * 会返回全表数据且 total 恒为 0。
+     * Without this interceptor registered, selectPage does not emit a LIMIT clause,
+     * so it returns the whole table and total is always 0.
      */
     @Bean
     public MybatisPlusInterceptor mybatisPlusInterceptor() {
         MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
 
-        // 分页插件（指定数据库类型为 MySQL）
+        // Pagination plugin (database type set to MySQL)
         PaginationInnerInterceptor paginationInterceptor = new PaginationInnerInterceptor(DbType.MYSQL);
-        // 单页最大条数，-1 表示不限制
+        // Maximum rows per page; -1 means unlimited
         paginationInterceptor.setMaxLimit(500L);
-        // 页码溢出总页数时不做处理（返回空列表而非回到首页）
+        // Do not clamp when the page number exceeds the total (return an empty list instead of the first page)
         paginationInterceptor.setOverflow(false);
 
         interceptor.addInnerInterceptor(paginationInterceptor);

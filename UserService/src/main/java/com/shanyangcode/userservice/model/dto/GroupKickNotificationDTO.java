@@ -7,12 +7,12 @@ import java.util.List;
 import lombok.Data;
 
 /**
- * 群聊踢出/退出通知DTO
+ * Group removal/leave notification DTO
  * <p>
- * 场景：成员被踢出群聊，或成员主动退出群聊
+ * Scenario: a member is removed from a group, or leaves it of their own accord
  * <p>
- * 注意：sessionId、sessionType 等字段位于 SystemNotificationMessage 顶层，
- * 此DTO仅作为 SystemNotificationMessage.body 的内容。
+ * Note: fields such as sessionId and sessionType live at the top level of SystemNotificationMessage;
+ * this DTO is only the content of SystemNotificationMessage.body.
  */
 @Data
 public class GroupKickNotificationDTO implements Serializable {
@@ -21,14 +21,14 @@ public class GroupKickNotificationDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 离开群聊的成员ID列表
+     * Ids of the members who left the group
      */
     private List<Long> memberIds;
 
     /**
-     * 操作者用户ID
+     * User id of the actor
      * <p>
-     * 被踢出时为执行踢出操作的群主/管理员ID；主动退出时为 null。
+     * The owner's or admin's id when someone was removed; null when the member left voluntarily.
      */
     private Long operatorId;
 }

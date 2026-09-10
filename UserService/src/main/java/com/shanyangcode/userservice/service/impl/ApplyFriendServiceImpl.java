@@ -40,7 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 好友申请服务实现类
+ * Friend request service implementation
  */
 @Slf4j
 @Service
@@ -53,13 +53,13 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
     private final ApplyFriendMapper applyFriendMapper;
 
     /**
-     * 申请列表中的视角标识：我是发送者 / 我是接收者
+     * Perspective flag used in the request list: I am the sender / I am the receiver
      */
     private static final int IS_RECEIVER_NO = 0;
     private static final int IS_RECEIVER_YES = 1;
 
     /**
-     * 好友申请过期时间（24小时）
+     * How long a friend request stays valid (24 hours)
      */
     private static final long FRIEND_REQUEST_EXPIRATION_HOURS = 24L;
 
@@ -77,44 +77,44 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
 
 
     /**
-     * 发送好友申请
+     * Sends a friend request
      * <p>
-     * 处理流程：
-     * 1. 验证发送者和接收者用户是否存在，是否为同一个用户
-     * 2. 检查是否已经是好友关系
-     * 3. 检查是否已有待处理的申请
-     * 4a. 没有：插入新申请记录，同时异步发出 Kafka 通知（通知链路 + 过期链路）
-     * 4b. 有且已通过：返回"已是好友"
-     * 4c. 有但其它状态（已读 / 已拒绝 / 已过期）：复用记录、状态回写为 UNREAD、附言更新，同时异步发出 Kafka 通知（通知链路 + 过期链路）
-     * 5. 返回 applyFriendId
+     * Processing steps:
+     * 1. Check that both the sender and the receiver exist and are not the same user
+     * 2. Check whether they are already friends
+     * 3. Check for an existing pending request
+     * 4a. None: insert a new request row and asynchronously emit the Kafka events (notification + expiry)
+     * 4b. One exists and was accepted: report that they are already friends
+     * 4c. One exists in another state (read / rejected / expired): reuse the row, reset the status to UNREAD, update the message, and asynchronously emit the Kafka events (notification + expiry)
+     * 5. Return the applyFriendId
      *
-     * @param senderId   发送者用户ID
-     * @param receiverId 接收者用户ID
-     * @param message    申请消息
-     * @return 好友申请ID
+     * @param senderId   the sender's user id
+     * @param receiverId the receiver's user id
+     * @param message    the request message
+     * @return the friend request id
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long sendFriendRequest(Long senderId, Long receiverId, String message) {
-        // 1. 验证用户存在性
+        // 1. Check that both users exist
         User sender = userService.getById(senderId);
-        ThrowUtils.throwIf(sender == null, ErrorCode.NOT_FOUND_ERROR, "发送者用户不存在");
+        ThrowUtils.throwIf(sender == null, ErrorCode.NOT_FOUND_ERROR, "The sender does not exist");
 
         User receiver = userService.getById(receiverId);
-        ThrowUtils.throwIf(receiver == null, ErrorCode.NOT_FOUND_ERROR, "接收者用户不存在");
+        ThrowUtils.throwIf(receiver == null, ErrorCode.NOT_FOUND_ERROR, "The receiver does not exist");
 
-        // 检查是否为同一个用户
-        ThrowUtils.throwIf(senderId.equals(receiverId), ErrorCode.OPERATION_ERROR, "不能添加自己");
+        // Reject a request addressed to oneself
+        ThrowUtils.throwIf(senderId.equals(receiverId), ErrorCode.OPERATION_ERROR, "You cannot add yourself");
 
-        // 2. 检查是否已经是好友关系且是否已被拉黑
+        // 2. Check whether they are already friends, or blocked
         boolean isFriend = friendService.lambdaQuery()
                 .eq(Friend::getUserId, senderId)
                 .eq(Friend::getFriendId, receiverId)
                 .exists();
-        ThrowUtils.throwIf(isFriend, ErrorCode.OPERATION_ERROR, "已经是好友关系，无需重复添加");
+        ThrowUtils.throwIf(isFriend, ErrorCode.OPERATION_ERROR, "You are already friends; there is no need to add them again");
 
 
-        // 3. 检查是否已有待处理的申请
+        // 3. Check for an existing pending request
         LambdaQueryWrapper<ApplyFriend> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ApplyFriend::getSenderId, senderId)
                 .eq(ApplyFriend::getReceiverId, receiverId);
@@ -122,31 +122,31 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
 
         Long applyFriendId = null;
         if (existingApplyFriend == null) {
-            // 4a. 没有：插入新申请记录，同时异步发出 Kafka 通知（通知链路 + 过期链路）
+            // 4a. None: insert a new request row and asynchronously emit the Kafka events (notification + expiry)
             applyFriendId = handleNewFriendApplication(senderId, receiverId, message, sender);
         } else if (existingApplyFriend.getStatus().equals(FriendApplicationStatusEnum.ACCEPTED.getCode())) {
-            // 4b. 有且已通过：返回"已是好友"
-            ThrowUtils.throwIf(true, ErrorCode.OPERATION_ERROR, "已经是好友关系，无需重复添加");
+            // 4b. One exists and was accepted: report that they are already friends
+            ThrowUtils.throwIf(true, ErrorCode.OPERATION_ERROR, "You are already friends; there is no need to add them again");
         } else {
-            // 4c. 有但其它状态（已读 / 已拒绝 / 已过期）：复用记录、状态回写为 UNREAD、附言更新，同时异步发出 Kafka 通知（通知链路 + 过期链路）
+            // 4c. One exists in another state (read / rejected / expired): reuse the row, reset the status to UNREAD, update the message, and asynchronously emit the Kafka events (notification + expiry)
             applyFriendId = handleExistingFriendApplication(existingApplyFriend, message, sender);
         }
 
-        // 5. 返回 applyFriendId
+        // 5. Return the applyFriendId
         return applyFriendId;
     }
 
     /**
-     * 处理新的好友申请
+     * Handles a brand-new friend request
      *
-     * @param senderId   发送者ID
-     * @param receiverId 接收者ID
-     * @param message    申请消息
-     * @param sender     发送者用户对象
-     * @return 好友申请ID
+     * @param senderId   the sender's id
+     * @param receiverId the receiver's id
+     * @param message    the request message
+     * @param sender     the sender's user record
+     * @return the friend request id
      */
     private Long handleNewFriendApplication(Long senderId, Long receiverId, String message, User sender) {
-        // 1. 创建好友申请记录
+        // 1. Create the friend request row
         ApplyFriend applyFriend = new ApplyFriend();
         Long applyFriendId = SnowflakeUtil.nextId();
         applyFriend.setApplyFriendId(applyFriendId);
@@ -158,12 +158,12 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
         applyFriend.setUpdatedTime(LocalDateTime.now());
 
         boolean saved = this.save(applyFriend);
-        ThrowUtils.throwIf(!saved, ErrorCode.SYSTEM_ERROR, "创建好友申请失败");
+        ThrowUtils.throwIf(!saved, ErrorCode.SYSTEM_ERROR, "Failed to create the friend request");
 
-        // 2. 发送Kafka通知（异步）
+        // 2. Publish the Kafka notification (asynchronously)
         sendFriendApplicationNotification(receiverId, sender, message);
 
-        // 3. 发送过期任务注册事件（异步）
+        // 3. Publish the expiry-registration event (asynchronously)
         registerExpirationTask(applyFriendId);
 
         return applyFriendId;
@@ -171,15 +171,15 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
 
 
     /**
-     * 处理已有的好友申请
+     * Handles an existing friend request row
      *
-     * @param existingApplyFriend 现有的好友申请
-     * @param message             申请消息
-     * @param sender              发送者用户对象
-     * @return 好友申请ID
+     * @param existingApplyFriend the existing friend request
+     * @param message             the request message
+     * @param sender              the sender's user record
+     * @return the friend request id
      */
     private Long handleExistingFriendApplication(ApplyFriend existingApplyFriend, String message, User sender) {
-        // 1. 更新好友申请记录
+        // 1. Update the friend request row
         LambdaUpdateWrapper<ApplyFriend> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.set(ApplyFriend::getStatus, FriendApplicationStatusEnum.UNREAD.getCode())
                 .set(ApplyFriend::getMessage, message)
@@ -187,12 +187,12 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
                 .eq(ApplyFriend::getApplyFriendId, existingApplyFriend.getApplyFriendId());
 
         boolean updated = this.update(updateWrapper);
-        ThrowUtils.throwIf(!updated, ErrorCode.SYSTEM_ERROR, "更新好友申请失败");
+        ThrowUtils.throwIf(!updated, ErrorCode.SYSTEM_ERROR, "Failed to update the friend request");
 
-        // 2. 发送Kafka通知（异步）
+        // 2. Publish the Kafka notification (asynchronously)
         sendFriendApplicationNotification(existingApplyFriend.getReceiverId(), sender, message);
 
-        // 3. 重新注册过期任务（异步）
+        // 3. Re-register the expiry task (asynchronously)
         registerExpirationTask(existingApplyFriend.getApplyFriendId());
 
         return existingApplyFriend.getApplyFriendId();
@@ -200,11 +200,11 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
 
 
     /**
-     * 发送好友申请通知（通过Kafka）
+     * Publishes the friend request notification over Kafka
      *
-     * @param receiverId 接收者ID
-     * @param sender     发送者用户对象
-     * @param message    申请附言
+     * @param receiverId the receiver's id
+     * @param sender     the sender's user record
+     * @param message    the message attached to the request
      */
     private void sendFriendApplicationNotification(Long receiverId, User sender, String message) {
         try {
@@ -215,65 +215,65 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
             notification.setMessage(message);
 
             notificationService.pushNewApply(receiverId, notification);
-            log.info("发送好友申请通知成功，接收者ID：{}，发送者ID：{}", receiverId, sender.getUserId());
+            log.info("Friend request notification published, receiver id: {}, sender id: {}", receiverId, sender.getUserId());
         } catch (Exception e) {
-            log.warn("发送好友申请通知失败，接收者ID：{}，发送者ID：{}，原因：{}",
+            log.warn("Failed to publish the friend request notification, receiver id: {}, sender id: {}, cause: {}",
                     receiverId, sender.getUserId(), e.getMessage());
         }
     }
 
     /**
-     * 注册好友申请过期任务（通过Kafka）
+     * Registers the friend request expiry task over Kafka
      *
-     * @param applyFriendId 好友申请ID
+     * @param applyFriendId the friend request id
      */
     private void registerExpirationTask(Long applyFriendId) {
         try {
-            // 计算过期时间（当前时间 + 24小时）
+            // Compute the expiry (now + 24 hours)
             long createTime = System.currentTimeMillis();
             long expireTime = createTime + (FRIEND_REQUEST_EXPIRATION_HOURS * 60 * 60 * 1000);
 
-            // 构建过期事件
+            // Build the expiry event
             FriendRequestCreationEvent event = new FriendRequestCreationEvent();
             event.setApplyFriendId(applyFriendId);
             event.setCreateTime(createTime);
             event.setExpireTime(expireTime);
 
-            // 发送到Kafka topic
+            // Publish it to the Kafka topic
             kafkaTemplate.send(
                     KafkaTopicConstant.TOPIC_FRIEND_REQUEST_CREATION,
                     String.valueOf(applyFriendId),
                     JSONUtil.toJsonStr(event)
             );
 
-            log.info("注册好友申请过期任务成功，申请ID：{}，过期时间：{}", applyFriendId, expireTime);
+            log.info("Friend request expiry task registered, request id: {}, expiry: {}", applyFriendId, expireTime);
         } catch (Exception e) {
-            log.error("注册好友申请过期任务失败，申请ID：{}，原因：{}", applyFriendId, e.getMessage());
+            log.error("Failed to register the friend request expiry task, request id: {}, cause: {}", applyFriendId, e.getMessage());
         }
     }
 
 
     /**
-     * 分页查询与该用户相关的好友申请列表（含对方用户信息）
+     * Returns a page of the friend requests involving this user, including the other party's details
      *
-     * @param userId      用户ID
-     * @param pageRequest 分页参数
-     * @return 申请DTO分页结果
+     * @param userId      the user id
+     * @param pageRequest the pagination parameters
+     * @return a page of request DTOs
      */
     @Override
     public IPage<ApplyFriendDTO> getReceivedRequestsWithUserInfo(Long userId, PageRequest pageRequest) {
-        ThrowUtils.throwIf(userId == null, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(userId == null, ErrorCode.PARAMS_ERROR, "User id must not be empty");
 
         int pageNum = pageRequest.getPageNum();
         int pageSize = pageRequest.getPageSize();
 
-        // 1. 查询好友申请实体分页
+        // 1. Query a page of friend request entities
         IPage<ApplyFriend> applyFriendPage = getReceivedRequests(userId, pageNum, pageSize);
 
-        // 2. 转换为DTO（批量回填对方用户信息）
+        // 2. Map them to DTOs, batch-filling the other party's details
         List<ApplyFriendDTO> dtoList = mapApplyFriendsToDTO(applyFriendPage.getRecords(), userId);
 
-        // 3. 构建分页DTO结果，沿用实体分页的 total
+        // 3. Build the DTO page, reusing the entity page's total
         Page<ApplyFriendDTO> dtoPage = new Page<>(pageNum, pageSize, applyFriendPage.getTotal());
         dtoPage.setRecords(dtoList);
 
@@ -281,20 +281,20 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
     }
 
     /**
-     * 分页查询与该用户相关的好友申请实体
+     * Returns a page of the friend request entities involving this user
      * <p>
-     * 注意：查询条件是 senderId = userId OR receiverId = userId，
-     * 即同时包含"我发出的"和"我收到的"。这是有意为之——
-     * 正因如此 DTO 中的 isReceiver 字段才有意义。
-     * 与之相对，getUnreadCount 只统计"我收到的"。
+     * Note: the predicate is senderId = userId OR receiverId = userId, so it covers both the
+     * requests I sent and the ones I received. That is deliberate: it is exactly what makes
+     * the isReceiver field on the DTO meaningful.
+     * By contrast, getUnreadCount counts only the requests I received.
      *
-     * @param userId   用户ID
-     * @param pageNum  页码
-     * @param pageSize 每页大小
-     * @return 申请实体分页结果
+     * @param userId   the user id
+     * @param pageNum  the page number
+     * @param pageSize the page size
+     * @return a page of request entities
      */
     private IPage<ApplyFriend> getReceivedRequests(Long userId, int pageNum, int pageSize) {
-        ThrowUtils.throwIf(userId == null, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(userId == null, ErrorCode.PARAMS_ERROR, "User id must not be empty");
 
         LambdaQueryWrapper<ApplyFriend> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.and(wrapper -> wrapper.eq(ApplyFriend::getSenderId, userId)
@@ -302,26 +302,26 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
                         .eq(ApplyFriend::getReceiverId, userId))
                 .orderByDesc(ApplyFriend::getUpdatedTime);
 
-        // 分页插件（Common 模块的 MybatisPlusConfig）会自动补 LIMIT 并计算 total
+        // The pagination plugin (MybatisPlusConfig in the Common module) adds the LIMIT and computes total
         Page<ApplyFriend> page = new Page<>(pageNum, pageSize);
         return applyFriendMapper.selectPage(page, queryWrapper);
     }
 
     /**
-     * 将好友申请记录映射为DTO列表
+     * Maps friend request rows onto DTOs
      * <p>
-     * 处理"我是发方还是收方"的视角切换：DTO 中的用户信息始终指向对方。
+     * Handles the sender/receiver perspective switch: the user details on the DTO always describe the other party.
      *
-     * @param applyFriends 好友申请记录
-     * @param userId       当前用户ID
-     * @return DTO列表
+     * @param applyFriends the friend request rows
+     * @param userId       the current user's id
+     * @return the DTO list
      */
     private List<ApplyFriendDTO> mapApplyFriendsToDTO(List<ApplyFriend> applyFriends, Long userId) {
         if (applyFriends == null || applyFriends.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // 1. 先收集所有"对方"的用户ID，避免在循环里逐条 getById 造成 N+1
+        // 1. Collect every other party's user id up front, so the loop does not issue N+1 getById calls
         Set<Long> targetUserIds = new HashSet<>();
         for (ApplyFriend applyFriend : applyFriends) {
             Long targetId = applyFriend.getSenderId().equals(userId)
@@ -332,7 +332,7 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
             }
         }
 
-        // 2. 一次性批量查询用户信息
+        // 2. Fetch all the user records in a single query
         Map<Long, User> userMap = new HashMap<>();
         if (!targetUserIds.isEmpty()) {
             List<User> users = userService.listByIds(targetUserIds);
@@ -343,7 +343,7 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
             }
         }
 
-        // 3. 逐条构建DTO
+        // 3. Build the DTOs one by one
         List<ApplyFriendDTO> dtoList = new ArrayList<>(applyFriends.size());
         for (ApplyFriend applyFriend : applyFriends) {
             ApplyFriendDTO dto = new ApplyFriendDTO();
@@ -355,7 +355,7 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
                     ? applyFriend.getReceiverId()
                     : applyFriend.getSenderId();
             User targetUser = userMap.get(targetUserId);
-            if (targetUser != null) { // 防御性判断：对方账号被硬删除时整行字段留空
+            if (targetUser != null) { // Defensive: if the other account was hard-deleted, leave the row's fields empty
                 dto.setUserId(String.valueOf(targetUser.getUserId()));
                 dto.setNickname(targetUser.getNickname());
                 dto.setAvatar(targetUser.getAvatar());
@@ -367,14 +367,14 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
     }
 
     /**
-     * 查询未读好友申请数量
+     * Returns the number of unread friend requests
      *
-     * @param userId 用户ID
-     * @return 未读数量
+     * @param userId the user id
+     * @return the unread count
      */
     @Override
     public int getUnreadCount(Long userId) {
-        ThrowUtils.throwIf(userId == null, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(userId == null, ErrorCode.PARAMS_ERROR, "User id must not be empty");
 
         LambdaQueryWrapper<ApplyFriend> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ApplyFriend::getReceiverId, userId)
@@ -384,23 +384,23 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
     }
 
     /**
-     * 修改好友申请状态
+     * Updates the status of one or more friend requests
      * <p>
-     * 事务边界必须在这个 public 入口上：下面的 handleXxx 是 protected 且被本类内部调用，
-     * Spring 代理不会对它们生效，它们自身的 @Transactional 不起作用。
+     * The transaction boundary has to sit on this public entry point: the handleXxx methods below are
+     * protected and called from within this class, so the Spring proxy never sees them and their own @Transactional has no effect.
      *
-     * @param receiverId 接收者用户ID（当前操作人）
-     * @param senderIds  申请发送者用户ID列表
-     * @param status     目标状态码
-     * @return 通过申请时返回新建的会话信息，其他情况返回 null
+     * @param receiverId the receiver's user id (the current actor)
+     * @param senderIds  the user ids of the request senders
+     * @param status     the target status code
+     * @return the newly created session when a request is accepted, otherwise null
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ModifyFriendApplicationResponse modifyApplicationStatus(Long receiverId, List<Long> senderIds, Integer status) {
-        ThrowUtils.throwIf(receiverId == null, ErrorCode.PARAMS_ERROR, "接收者ID不能为空");
-        ThrowUtils.throwIf(senderIds == null || senderIds.isEmpty(), ErrorCode.PARAMS_ERROR, "发送者ID列表不能为空");
+        ThrowUtils.throwIf(receiverId == null, ErrorCode.PARAMS_ERROR, "Receiver id must not be empty");
+        ThrowUtils.throwIf(senderIds == null || senderIds.isEmpty(), ErrorCode.PARAMS_ERROR, "Sender id list must not be empty");
 
-        // 非法状态码在这里抛 IllegalArgumentException，由 Controller 单独捕获
+        // An invalid status code throws IllegalArgumentException here, which the controller catches separately
         FriendApplicationStatusEnum statusEnum = FriendApplicationStatusEnum.fromCode(status);
 
         return switch (statusEnum) {
@@ -410,45 +410,45 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
                 handleReadApplication(receiverId, senderIds);
                 yield null;
             }
-            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, "不允许修改为该状态值");
+            default -> throw new BusinessException(ErrorCode.PARAMS_ERROR, "That status value is not allowed");
         };
     }
 
     /**
-     * 处理通过好友申请
+     * Accepts a friend request
      *
-     * @param receiverId 接收者用户ID
-     * @param senderIds  发送者用户ID列表（只能有一个）
-     * @return 新建的会话信息
+     * @param receiverId the receiver's user id
+     * @param senderIds  the sender user ids (exactly one)
+     * @return the newly created session
      */
     protected ModifyFriendApplicationResponse handleAcceptApplication(Long receiverId, List<Long> senderIds) {
-        ThrowUtils.throwIf(senderIds.size() != 1, ErrorCode.PARAMS_ERROR, "通过状态只能包含一个发送者");
+        ThrowUtils.throwIf(senderIds.size() != 1, ErrorCode.PARAMS_ERROR, "Accepting a request takes exactly one sender");
 
         Long senderId = senderIds.get(0);
 
         ApplyFriend targetApply = findApplyFriendBySenderAndReceiver(senderId, receiverId);
-        ThrowUtils.throwIf(targetApply == null, ErrorCode.NOT_FOUND_ERROR, "好友申请不存在");
+        ThrowUtils.throwIf(targetApply == null, ErrorCode.NOT_FOUND_ERROR, "The friend request does not exist");
 
         ModifyFriendApplicationResponse response = handleFriendRequest(targetApply, receiverId, true);
-        ThrowUtils.throwIf(response == null, ErrorCode.OPERATION_ERROR, "处理好友申请失败");
+        ThrowUtils.throwIf(response == null, ErrorCode.OPERATION_ERROR, "Failed to process the friend request");
 
         return response;
     }
 
     /**
-     * 处理拒绝好友申请
+     * Rejects a friend request
      *
-     * @param receiverId 接收者用户ID
-     * @param senderIds  发送者用户ID列表（只能有一个）
+     * @param receiverId the receiver's user id
+     * @param senderIds  the sender user ids (exactly one)
      * @return null
      */
     protected ModifyFriendApplicationResponse handleRejectApplication(Long receiverId, List<Long> senderIds) {
-        ThrowUtils.throwIf(senderIds.size() != 1, ErrorCode.PARAMS_ERROR, "拒绝状态只能包含一个发送者");
+        ThrowUtils.throwIf(senderIds.size() != 1, ErrorCode.PARAMS_ERROR, "Rejecting a request takes exactly one sender");
 
         Long senderId = senderIds.get(0);
 
         ApplyFriend targetApply = findApplyFriendBySenderAndReceiver(senderId, receiverId);
-        ThrowUtils.throwIf(targetApply == null, ErrorCode.NOT_FOUND_ERROR, "好友申请不存在");
+        ThrowUtils.throwIf(targetApply == null, ErrorCode.NOT_FOUND_ERROR, "The friend request does not exist");
 
         handleFriendRequest(targetApply, receiverId, false);
 
@@ -456,10 +456,10 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
     }
 
     /**
-     * 处理已读好友申请（可批量）
+     * Marks friend requests as read (accepts several at once)
      *
-     * @param receiverId 接收者用户ID
-     * @param senderIds  发送者用户ID列表
+     * @param receiverId the receiver's user id
+     * @param senderIds  the sender user ids
      */
     protected void handleReadApplication(Long receiverId, List<Long> senderIds) {
         LambdaUpdateWrapper<ApplyFriend> updateWrapper = new LambdaUpdateWrapper<>();
@@ -470,15 +470,15 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
                 .eq(ApplyFriend::getStatus, FriendApplicationStatusEnum.UNREAD.getCode());
 
         int updated = applyFriendMapper.update(null, updateWrapper);
-        ThrowUtils.throwIf(updated <= 0, ErrorCode.OPERATION_ERROR, "标记已读失败");
+        ThrowUtils.throwIf(updated <= 0, ErrorCode.OPERATION_ERROR, "Failed to mark the requests as read");
     }
 
     /**
-     * 根据发送者和接收者查找好友申请
+     * Looks up a friend request by sender and receiver
      *
-     * @param senderId   发送者用户ID
-     * @param receiverId 接收者用户ID
-     * @return 好友申请记录，不存在时返回 null
+     * @param senderId   the sender's user id
+     * @param receiverId the receiver's user id
+     * @return the friend request row, or null when there is none
      */
     private ApplyFriend findApplyFriendBySenderAndReceiver(Long senderId, Long receiverId) {
         LambdaQueryWrapper<ApplyFriend> queryWrapper = new LambdaQueryWrapper<>();
@@ -488,30 +488,30 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
     }
 
     /**
-     * 处理好友申请（通过或拒绝）
+     * Processes a friend request, accepting or rejecting it
      * <p>
-     * 处理流程：
-     * 1. 校验操作权限（只有接收者本人可以处理）
-     * 2. 校验申请状态（只能处理未读或已读的申请）
-     * 3. 更新申请状态
-     * 4. 通过时建立好友关系并创建会话
+     * Processing steps:
+     * 1. Check the permission (only the receiver may act on it)
+     * 2. Check the status (only unread or read requests can be acted on)
+     * 3. Update the request status
+     * 4. On acceptance, create the friendship and the session
      *
-     * @param applyFriend 好友申请
-     * @param receiverId  接收者用户ID（用于权限校验）
-     * @param accept      true=通过，false=拒绝
-     * @return 通过时返回会话信息，拒绝时返回 null
+     * @param applyFriend the friend request
+     * @param receiverId  the receiver's user id (used for the permission check)
+     * @param accept      true to accept, false to reject
+     * @return the session when accepting, null when rejecting
      */
     private ModifyFriendApplicationResponse handleFriendRequest(ApplyFriend applyFriend, Long receiverId, boolean accept) {
-        // 1. 校验权限（只有接收者可以处理申请）
+        // 1. Check the permission (only the receiver may act on the request)
         ThrowUtils.throwIf(!applyFriend.getReceiverId().equals(receiverId),
-                ErrorCode.NO_AUTH_ERROR, "无权处理该好友申请");
+                ErrorCode.NO_AUTH_ERROR, "You are not allowed to act on this friend request");
 
-        // 2. 校验申请状态（只能处理未读或已读状态的申请）
+        // 2. Check the status (only unread or read requests can be acted on)
         boolean isValidStatus = applyFriend.getStatus().equals(FriendApplicationStatusEnum.UNREAD.getCode())
                 || applyFriend.getStatus().equals(FriendApplicationStatusEnum.READ.getCode());
-        ThrowUtils.throwIf(!isValidStatus, ErrorCode.OPERATION_ERROR, "该好友申请已处理或已过期");
+        ThrowUtils.throwIf(!isValidStatus, ErrorCode.OPERATION_ERROR, "That friend request has already been handled or has expired");
 
-        // 3. 更新申请状态
+        // 3. Update the request status
         LambdaUpdateWrapper<ApplyFriend> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.set(ApplyFriend::getStatus,
                         accept ? FriendApplicationStatusEnum.ACCEPTED.getCode()
@@ -520,13 +520,13 @@ public class ApplyFriendServiceImpl extends ServiceImpl<ApplyFriendMapper, Apply
                 .eq(ApplyFriend::getApplyFriendId, applyFriend.getApplyFriendId());
         boolean updated = this.update(updateWrapper);
 
-        // 4. 通过时建立好友关系并创建会话
+        // 4. On acceptance, create the friendship and the session
         if (accept && updated) {
             User receiver = userService.getById(receiverId);
             return friendService.addFriend(receiver, applyFriend.getSenderId());
         }
 
-        // 5. 拒绝或更新失败时返回 null
+        // 5. Return null when rejecting, or when the update failed
         return null;
     }
 }

@@ -38,18 +38,18 @@ public interface UserService extends IService<User> {
     Map<Long, String> getUserNickName(Long sessionId);
 
     /**
-     * 查询用户资料
+     * Returns the user's profile
      *
-     * @param userId 用户 ID
-     * @return 用户资料
+     * @param userId the user id
+     * @return the user's profile
      */
     UserInfoResponse getUserInfo(Long userId);
 
     /**
-     * 通过邮箱验证码修改密码
+     * Changes the password using an emailed verification code
      *
-     * @param updatePasswordRequest 修改密码请求
-     * @return 是否修改成功
+     * @param updatePasswordRequest the change-password request
+     * @return whether the password was changed
      */
     Boolean updatePassword(UpdatePasswordRequest updatePasswordRequest);
 }

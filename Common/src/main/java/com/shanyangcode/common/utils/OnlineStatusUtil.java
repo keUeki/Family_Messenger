@@ -5,26 +5,26 @@ import com.shanyangcode.common.constant.CommonConstant;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
- * 用户在线状态工具类
+ * User online-status helper
  * <p>
- * 判断依据：用户断开 WebSocket 连接时，RealTimeService 会向 Redis 写入
- * {@code user:offline:{userId}} 记录离线时间戳（见 WebSocketHandler#saveOfflineTime）。
- * 该键存在即表示用户曾经离线。
+ * How it works: when a user drops the WebSocket connection, RealTimeService writes
+ * {@code user:offline:{userId}} to Redis with the offline timestamp (see WebSocketHandler#saveOfflineTime).
+ * The presence of that key means the user has gone offline.
  * <p>
- * 使用场景：系统通知推送时判断是否需要转入离线持久化流程。
+ * Used when pushing system notifications, to decide whether to fall back to offline persistence.
  */
 public final class OnlineStatusUtil {
 
     private OnlineStatusUtil() {
-        // 工具类，禁止实例化
+        // Utility class; instantiation is not allowed
     }
 
     /**
-     * 判断用户是否离线
+     * Tells whether the user is offline
      *
-     * @param stringRedisTemplate Redis 操作模板
-     * @param userId              用户 ID
-     * @return true 表示用户处于离线状态
+     * @param stringRedisTemplate the Redis template
+     * @param userId              the user id
+     * @return true when the user is offline
      */
     public static boolean isUserOffline(StringRedisTemplate stringRedisTemplate, Long userId) {
         if (stringRedisTemplate == null || userId == null) {

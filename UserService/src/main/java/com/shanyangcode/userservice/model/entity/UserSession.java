@@ -7,41 +7,41 @@ import lombok.Data;
 import java.util.Date;
 
 /**
- * 用户会话关系表
+ * User-session relation table
  * @TableName user_session
  */
 @TableName(value ="user_session")
 @Data
 public class UserSession {
     /**
-     * 用户 id
+     * User id
      */
 
     private Long userId;
 
     /**
-     * 会话 id
+     * Session id
      */
 
     private Long sessionId;
 
     /**
-     * 角色：0 群主，1 管理员，2 普通用户
+     * Role: 0 owner, 1 admin, 2 regular member
      */
     private Integer role;
 
     /**
-     * 状态：0 正常，1 删除
+     * Status: 0 active, 1 deleted
      */
     private Integer status;
 
     /**
-     * 创建时间
+     * Creation time
      */
     private Date createdTime;
 
     /**
-     * 更新时间
+     * Last update time
      */
     private Date updatedTime;
 }

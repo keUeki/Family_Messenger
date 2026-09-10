@@ -7,7 +7,7 @@ import java.util.List;
 import lombok.Data;
 
 /**
- * 群聊邀请响应DTO
+ * Group invitation response DTO
  */
 @Data
 public class InviteGroupResponse implements Serializable {
@@ -16,12 +16,12 @@ public class InviteGroupResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 成功邀请的用户ID列表
+     * Ids of the users invited successfully
      */
     private List<String> successIds;
 
     /**
-     * 邀请失败的用户ID列表
+     * Ids of the users who could not be invited
      */
     private List<String> failedIds;
 }

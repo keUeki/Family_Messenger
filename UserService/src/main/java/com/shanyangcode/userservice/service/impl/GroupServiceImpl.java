@@ -29,7 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 群组服务实现类
+ * Group service implementation
  */
 @Slf4j
 @Service
@@ -42,19 +42,19 @@ public class GroupServiceImpl implements GroupService {
     private final UserSessionService userSessionService;
 
     /**
-     * 用户角色常量
+     * User role constants
      */
     private static final int USER_ROLE_GROUP_OWNER = 0;
     private static final int USER_ROLE_GROUP_ADMIN = 1;
     private static final int USER_ROLE_GROUP_MEMBER = 2;
 
     /**
-     * 会话状态常量
+     * Session status constants
      */
     private static final int SESSION_STATUS_NORMAL = 0;
 
     /**
-     * 默认群头像URL
+     * Default group avatar URL
      */
     private static final String DEFAULT_GROUP_AVATAR_URL = "https://video.shanyangcode.com/image/default/A9C9C83CCCE043EC8253DB5D7545DCB4-6-2.png";
 
@@ -71,10 +71,10 @@ public class GroupServiceImpl implements GroupService {
     }
 
     /**
-     * 邀请成员加入群聊
+     * Invites members to a group chat
      *
-     * @param request 邀请请求
-     * @return 邀请结果
+     * @param request the invitation request
+     * @return the outcome of the invitation
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -83,33 +83,33 @@ public class GroupServiceImpl implements GroupService {
         Long inviterId = request.getInviterId();
         List<Long> inviteeIds = request.getInviteeIds();
 
-        log.info("开始邀请成员加入群聊，sessionId: {}, inviterId: {}, inviteeIds: {}", sessionId, inviterId, inviteeIds);
+        log.info("Inviting members to the group, sessionId: {}, inviterId: {}, inviteeIds: {}", sessionId, inviterId, inviteeIds);
 
-        // 1. 参数校验
+        // 1. Validate the parameters
         validateInviteGroupParameters(sessionId, inviterId, inviteeIds);
 
-        // 2. 校验会话存在且为群聊
+        // 2. Check that the session exists and is a group chat
         Session session = validateSession(sessionId);
 
-        // 3. 校验邀请人权限（必须是群主或管理员）
+        // 3. Check the inviter's permission (they must be the owner or an admin)
         validateInviterPermission(sessionId, inviterId);
 
-        // 4. 校验邀请人与被邀请人的好友关系
+        // 4. Check that the inviter is friends with each invitee
         List<Long> failedIds = new ArrayList<>();
         List<Long> validInviteeIds = validateAndFilterFriends(inviterId, inviteeIds, failedIds);
 
-        // 5. 过滤已在群内的成员
+        // 5. Filter out anyone already in the group
         validInviteeIds = filterExistingMembers(sessionId, validInviteeIds, failedIds);
 
-        ThrowUtils.throwIf(validInviteeIds.isEmpty(), ErrorCode.OPERATION_ERROR, "没有有效的好友可加入群聊");
+        ThrowUtils.throwIf(validInviteeIds.isEmpty(), ErrorCode.OPERATION_ERROR, "There are no eligible friends to add to the group");
 
-        // 6. 插入user_session记录并推送Kafka通知
+        // 6. Insert the user_session rows and publish the Kafka notifications
         List<Long> successIds = insertMembersAndPushNotifications(sessionId, session.getName(), validInviteeIds, failedIds);
 
-        // 7. 构建响应
+        // 7. Build the response
         InviteGroupResponse response = new InviteGroupResponse();
 
-        // 从 List<Long> 转化为 List<String>
+        // Convert the List<Long> into a List<String>
         response.setSuccessIds(successIds.stream()
                 .map(String::valueOf)
                 .collect(Collectors.toList()));
@@ -118,23 +118,23 @@ public class GroupServiceImpl implements GroupService {
                 .map(String::valueOf)
                 .collect(Collectors.toList()));
 
-        log.info("群聊邀请完成，sessionId: {}, 成功: {}, 失败: {}", sessionId, successIds.size(), failedIds.size());
+        log.info("Group invitation finished, sessionId: {}, succeeded: {}, failed: {}", sessionId, successIds.size(), failedIds.size());
         return response;
     }
 
-    /* ===================== 私有方法 ===================== */
+    /* ===================== Private helpers ===================== */
 
     /**
-     * 校验邀请群聊请求参数的合法性
+     * Validates the group invitation request parameters
      */
     private void validateInviteGroupParameters(Long sessionId, Long inviterId, List<Long> inviteeIds) {
-        ThrowUtils.throwIf(sessionId == null || sessionId <= 0, ErrorCode.PARAMS_ERROR, "会话ID不能为空");
-        ThrowUtils.throwIf(inviterId == null || inviterId <= 0, ErrorCode.PARAMS_ERROR, "邀请人ID不能为空");
-        ThrowUtils.throwIf(inviteeIds == null || inviteeIds.isEmpty(), ErrorCode.PARAMS_ERROR, "被邀请人ID列表不能为空");
+        ThrowUtils.throwIf(sessionId == null || sessionId <= 0, ErrorCode.PARAMS_ERROR, "Session id must not be empty");
+        ThrowUtils.throwIf(inviterId == null || inviterId <= 0, ErrorCode.PARAMS_ERROR, "Inviter id must not be empty");
+        ThrowUtils.throwIf(inviteeIds == null || inviteeIds.isEmpty(), ErrorCode.PARAMS_ERROR, "The invitee id list must not be empty");
     }
 
     /**
-     * 校验会话存在且为群聊类型
+     * Checks that the session exists and is a group chat
      */
     private Session validateSession(Long sessionId) {
         LambdaQueryWrapper<Session> wrapper = new LambdaQueryWrapper<>();
@@ -142,15 +142,15 @@ public class GroupServiceImpl implements GroupService {
                 .eq(Session::getStatus, SESSION_STATUS_NORMAL);
         Session session = sessionMapper.selectOne(wrapper);
 
-        ThrowUtils.throwIf(session == null, ErrorCode.NOT_FOUND_ERROR, "群聊不存在或已解散");
+        ThrowUtils.throwIf(session == null, ErrorCode.NOT_FOUND_ERROR, "The group does not exist or has been disbanded");
         ThrowUtils.throwIf(!(SessionTypeConstant.GROUP_TYPE == session.getType()),
-                ErrorCode.PARAMS_ERROR, "该会话不是群聊");
+                ErrorCode.PARAMS_ERROR, "That session is not a group chat");
 
         return session;
     }
 
     /**
-     * 校验邀请人权限（必须是群主或管理员）
+     * Checks the inviter's permission (they must be the owner or an admin)
      */
     private void validateInviterPermission(Long sessionId, Long inviterId) {
         LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
@@ -159,16 +159,16 @@ public class GroupServiceImpl implements GroupService {
                 .eq(UserSession::getStatus, SESSION_STATUS_NORMAL);
         UserSession userSession = userSessionMapper.selectOne(wrapper);
 
-        ThrowUtils.throwIf(userSession == null, ErrorCode.NO_AUTH_ERROR, "您不在该群聊中");
+        ThrowUtils.throwIf(userSession == null, ErrorCode.NO_AUTH_ERROR, "You are not a member of that group");
         ThrowUtils.throwIf(userSession.getRole() != USER_ROLE_GROUP_OWNER && userSession.getRole() != USER_ROLE_GROUP_ADMIN,
-                ErrorCode.NO_AUTH_ERROR, "只有群主或管理员才能邀请成员");
+                ErrorCode.NO_AUTH_ERROR, "Only the group owner or an admin can invite members");
     }
 
     /**
-     * 校验并过滤好友关系，返回有效的被邀请人ID列表
+     * Checks the friendships and returns the ids of the invitees that are eligible
      */
     private List<Long> validateAndFilterFriends(Long inviterId, List<Long> inviteeIds, List<Long> failedIds) {
-        // 获取邀请人所有好友ID
+        // Load every friend id of the inviter
         LambdaQueryWrapper<Friend> friendWrapper = new LambdaQueryWrapper<>();
         friendWrapper.eq(Friend::getUserId, inviterId)
                 .eq(Friend::getStatus, FriendStatusEnum.NORMAL.getCode());
@@ -185,7 +185,7 @@ public class GroupServiceImpl implements GroupService {
                 validInviteeIds.add(inviteeId);
             } else {
                 failedIds.add(inviteeId);
-                log.info("被邀请人ID {} 不是邀请人的好友，无法加入群聊", inviteeId);
+                log.info("Invitee {} is not a friend of the inviter and cannot join the group", inviteeId);
             }
         }
 
@@ -193,14 +193,14 @@ public class GroupServiceImpl implements GroupService {
     }
 
     /**
-     * 过滤已在群内的成员
+     * Filters out the members already in the group
      */
     private List<Long> filterExistingMembers(Long sessionId, List<Long> inviteeIds, List<Long> failedIds) {
         if (inviteeIds.isEmpty()) {
             return inviteeIds;
         }
 
-        // 查询已在群内的成员
+        // Load the members already in the group
         LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserSession::getSessionId, sessionId)
                 .in(UserSession::getUserId, inviteeIds)
@@ -215,7 +215,7 @@ public class GroupServiceImpl implements GroupService {
         for (Long inviteeId : inviteeIds) {
             if (existingMemberIds.contains(inviteeId)) {
                 failedIds.add(inviteeId);
-                log.info("被邀请人ID {} 已在群聊中", inviteeId);
+                log.info("Invitee {} is already in the group", inviteeId);
             } else {
                 newInviteeIds.add(inviteeId);
             }
@@ -225,37 +225,37 @@ public class GroupServiceImpl implements GroupService {
     }
 
     /**
-     * 插入成员并推送Kafka通知
+     * Inserts the members and publishes the Kafka notifications
      */
     private List<Long> insertMembersAndPushNotifications(Long sessionId, String groupName,
                                                          List<Long> inviteeIds, List<Long> failedIds) {
         List<Long> successIds = new ArrayList<>();
 
-        // 1. 先插入所有成员
+        // 1. Insert every member first
         for (Long inviteeId : inviteeIds) {
             try {
                 insertUserSession(sessionId, inviteeId, USER_ROLE_GROUP_MEMBER);
                 successIds.add(inviteeId);
             } catch (Exception e) {
                 failedIds.add(inviteeId);
-                log.error("邀请成员加入群聊失败，成员ID {}，错误信息：{}", inviteeId, e.getMessage(), e);
+                log.error("Failed to add the member to the group, member id {}, error: {}", inviteeId, e.getMessage(), e);
             }
         }
 
-        // 2. 获取群主ID和最新成员数量（所有成员插入后）
+        // 2. Read the owner id and the up-to-date member count (after every insert)
         Long creatorId = getGroupCreatorId(sessionId);
         int membersCount = userSessionService.getGroupMemberCount(sessionId);
 
-        // 3. 构建通知消息
+        // 3. Build the notification message
         NewGroupSessionNotificationDTO notification = buildNewGroupSessionNotification(groupName, creatorId, membersCount);
 
-        // 4. 统一推送Kafka通知
+        // 4. Publish all the Kafka notifications
         for (Long inviteeId : successIds) {
             try {
                 notificationService.pushGroupNewSession(inviteeId, sessionId, notification);
             } catch (Exception e) {
-                log.error("推送群聊会话通知失败，成员ID {}，错误信息：{}", inviteeId, e.getMessage(), e);
-                // 通知失败不影响邀请成功状态，仅记录日志
+                log.error("Failed to push the group session notification, member id {}, error: {}", inviteeId, e.getMessage(), e);
+                // A failed notification does not undo a successful invitation; it is only logged
             }
         }
 
@@ -263,10 +263,10 @@ public class GroupServiceImpl implements GroupService {
     }
 
     /**
-     * 获取群主用户ID
+     * Returns the group owner's user id
      *
-     * @param sessionId 会话ID
-     * @return 群主用户ID
+     * @param sessionId the session id
+     * @return the group owner's user id
      */
     private Long getGroupCreatorId(Long sessionId) {
         LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
@@ -274,12 +274,12 @@ public class GroupServiceImpl implements GroupService {
                 .eq(UserSession::getRole, USER_ROLE_GROUP_OWNER)
                 .eq(UserSession::getStatus, SESSION_STATUS_NORMAL);
         UserSession ownerSession = userSessionMapper.selectOne(wrapper);
-        ThrowUtils.throwIf(ownerSession == null, ErrorCode.NOT_FOUND_ERROR, "群主信息不存在");
+        ThrowUtils.throwIf(ownerSession == null, ErrorCode.NOT_FOUND_ERROR, "The group owner record does not exist");
         return ownerSession.getUserId();
     }
 
     /**
-     * 插入用户会话关系
+     * Inserts the user-session row
      */
     private void insertUserSession(Long sessionId, Long userId, int role) {
         UserSession userSession = new UserSession();
@@ -293,7 +293,7 @@ public class GroupServiceImpl implements GroupService {
     }
 
     /**
-     * 构建新群会话的通知消息
+     * Builds the notification message for the new group session
      */
     private NewGroupSessionNotificationDTO buildNewGroupSessionNotification(String groupName, Long creatorId, int membersCount) {
         NewGroupSessionNotificationDTO notification = new NewGroupSessionNotificationDTO();

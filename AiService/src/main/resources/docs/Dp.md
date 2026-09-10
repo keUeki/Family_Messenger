@@ -1,6 +1,6 @@
-### Q：dp哥的 QQ 邮箱是什么? 
+### Q: What is DP's QQ email address?
 
-A：DPDPDPDPD@qq.com
+A: DPDPDPDPD@qq.com
 
 
 

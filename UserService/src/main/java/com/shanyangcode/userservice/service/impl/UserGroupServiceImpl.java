@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * 用户群聊列表服务实现类
+ * User group list service implementation
  */
 @Slf4j
 @Service
@@ -35,17 +35,17 @@ public class UserGroupServiceImpl implements UserGroupService {
     private final UserSessionMapper userSessionMapper;
 
     /**
-     * 用户角色常量
+     * User role constants
      */
     private static final int ROLE_OWNER = 0;
 
     /**
-     * 状态常量
+     * Status constants
      */
     private static final int STATUS_NORMAL = 0;
 
     /**
-     * 时间格式
+     * Time format
      */
     private static final String TIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
@@ -56,21 +56,21 @@ public class UserGroupServiceImpl implements UserGroupService {
     }
 
     /**
-     * 分页查询用户加入的群聊列表
+     * Returns a page of the groups the user belongs to
      *
-     * @param userId      用户ID
-     * @param pageRequest 分页参数
-     * @return 用户群聊分页结果
+     * @param userId      the user id
+     * @param pageRequest the pagination parameters
+     * @return a page of the user's groups
      */
     @Override
     public PageResponse<UserGroupDTO> getUserGroups(Long userId, PageRequest pageRequest) {
-        log.info("查询用户群聊列表，userId: {}, pageNum: {}, pageSize: {}",
+        log.info("Loading the user's group list, userId: {}, pageNum: {}, pageSize: {}",
                 userId, pageRequest.getPageNum(), pageRequest.getPageSize());
 
-        // 1. 参数校验
-        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        // 1. Validate the parameters
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "User id must not be empty");
 
-        // 2. 查询用户关联的所有 sessionId（正常状态）
+        // 2. Load every sessionId linked to the user that is still active
         LambdaQueryWrapper<UserSession> userSessionWrapper = new LambdaQueryWrapper<>();
         userSessionWrapper.eq(UserSession::getUserId, userId)
                 .eq(UserSession::getStatus, STATUS_NORMAL)
@@ -78,7 +78,7 @@ public class UserGroupServiceImpl implements UserGroupService {
         List<UserSession> userSessions = userSessionMapper.selectList(userSessionWrapper);
 
         if (userSessions.isEmpty()) {
-            log.info("用户没有加入任何会话，userId: {}", userId);
+            log.info("The user has not joined any session, userId: {}", userId);
             return buildEmptyResponse(pageRequest);
         }
 
@@ -86,7 +86,7 @@ public class UserGroupServiceImpl implements UserGroupService {
                 .map(UserSession::getSessionId)
                 .toList();
 
-        // 3. 查询群聊类型的 session（type=1，status=0）
+        // 3. Load the group sessions (type=1, status=0)
         LambdaQueryWrapper<Session> sessionWrapper = new LambdaQueryWrapper<>();
         sessionWrapper.in(Session::getSessionId, sessionIds)
                 .eq(Session::getType, SessionTypeConstant.GROUP_TYPE)
@@ -94,16 +94,16 @@ public class UserGroupServiceImpl implements UserGroupService {
         List<Session> groupSessions = sessionMapper.selectList(sessionWrapper);
 
         if (groupSessions.isEmpty()) {
-            log.info("用户没有加入任何群聊，userId: {}", userId);
+            log.info("The user has not joined any group, userId: {}", userId);
             return buildEmptyResponse(pageRequest);
         }
 
-        // 4. 获取群聊 sessionId 集合
+        // 4. Collect the group session ids
         Set<Long> groupSessionIds = groupSessions.stream()
                 .map(Session::getSessionId)
                 .collect(Collectors.toSet());
 
-        // 5. 查询用户在这些群聊中的信息（带分页，按加入时间倒序）
+        // 5. Load the user's membership rows for those groups, paginated, most recently joined first
         Page<UserSession> page = pageRequest.toPage();
         LambdaQueryWrapper<UserSession> pagedWrapper = new LambdaQueryWrapper<>();
         pagedWrapper.eq(UserSession::getUserId, userId)
@@ -116,31 +116,31 @@ public class UserGroupServiceImpl implements UserGroupService {
             return buildEmptyResponse(pageRequest);
         }
 
-        // 6. 获取当前页的 sessionId 列表
+        // 6. Collect the sessionIds on the current page
         List<Long> pagedSessionIds = resultPage.getRecords().stream()
                 .map(UserSession::getSessionId)
                 .toList();
 
-        // 7. 构建 sessionId -> Session 映射
+        // 7. Build the sessionId -> Session map
         Map<Long, Session> sessionMap = groupSessions.stream()
                 .filter(s -> pagedSessionIds.contains(s.getSessionId()))
                 .collect(Collectors.toMap(Session::getSessionId, s -> s));
 
-        // 8. 查询群主信息（role=0）获取 creatorId
+        // 8. Look up the owners (role=0) to fill in creatorId
         Map<Long, Long> creatorMap = getCreatorMap(pagedSessionIds);
 
-        // 9. 查询群成员数量
+        // 9. Count the members of each group
         Map<Long, Integer> memberCountMap = getMemberCountMap(pagedSessionIds);
 
-        // 10. 转换为 DTO 列表
+        // 10. Map the rows onto DTOs
         List<UserGroupDTO> dtoList = resultPage.getRecords().stream()
                 .map(us -> convertToDTO(us, sessionMap.get(us.getSessionId()), creatorMap, memberCountMap))
                 .toList();
 
-        log.info("查询用户群聊列表成功，userId: {}, total: {}, 返回记录数: {}",
+        log.info("User group list loaded, userId: {}, total: {}, rows returned: {}",
                 userId, resultPage.getTotal(), dtoList.size());
 
-        // 11. 构建分页响应
+        // 11. Build the paginated response
         return PageResponse.<UserGroupDTO>builder()
                 .list(dtoList)
                 .total(resultPage.getTotal())
@@ -152,17 +152,17 @@ public class UserGroupServiceImpl implements UserGroupService {
                 .build();
     }
 
-    /* ===================== 私有方法 ===================== */
+    /* ===================== Private helpers ===================== */
 
     /**
-     * 构建空的分页响应
+     * Builds an empty paginated response
      */
     private PageResponse<UserGroupDTO> buildEmptyResponse(PageRequest pageRequest) {
         return PageResponse.empty(pageRequest.getPageNum(), pageRequest.getPageSize());
     }
 
     /**
-     * 查询每个群聊的群主用户ID
+     * Looks up the owner's user id for each group
      */
     private Map<Long, Long> getCreatorMap(List<Long> sessionIds) {
         if (sessionIds.isEmpty()) {
@@ -180,19 +180,19 @@ public class UserGroupServiceImpl implements UserGroupService {
                 .collect(Collectors.toMap(
                         UserSession::getSessionId,
                         UserSession::getUserId,
-                        (existing, replacement) -> existing // 如果有多个群主，取第一个
+                        (existing, replacement) -> existing // if there is more than one owner, keep the first
                 ));
     }
 
     /**
-     * 查询每个群聊的成员数量
+     * Counts the members of each group
      */
     private Map<Long, Integer> getMemberCountMap(List<Long> sessionIds) {
         if (sessionIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        // 逐个查询每个群的成员数量
+        // Count the members of each group in turn
         return sessionIds.stream()
                 .collect(Collectors.toMap(
                         sessionId -> sessionId,
@@ -201,7 +201,7 @@ public class UserGroupServiceImpl implements UserGroupService {
     }
 
     /**
-     * 统计单个群聊的成员数量
+     * Counts the members of a single group
      */
     private Integer countGroupMembers(Long sessionId) {
         LambdaQueryWrapper<UserSession> countWrapper = new LambdaQueryWrapper<>();
@@ -211,7 +211,7 @@ public class UserGroupServiceImpl implements UserGroupService {
     }
 
     /**
-     * 将 UserSession 与 Session 组装为 UserGroupDTO
+     * Assembles a UserSession and a Session into a UserGroupDTO
      */
     private UserGroupDTO convertToDTO(UserSession userSession, Session session,
                                       Map<Long, Long> creatorMap,
@@ -224,17 +224,17 @@ public class UserGroupServiceImpl implements UserGroupService {
             dto.setAvatar(session.getAvatar());
         }
 
-        // 设置群主 ID
+        // Set the owner id
         Long creatorId = creatorMap.get(userSession.getSessionId());
         dto.setCreatorId(creatorId != null ? String.valueOf(creatorId) : null);
 
-        // 设置用户角色
+        // Set the user's role
         dto.setRole(userSession.getRole());
 
-        // 设置成员数量
+        // Set the member count
         dto.setMemberCount(memberCountMap.getOrDefault(userSession.getSessionId(), 0));
 
-        // 格式化加入时间
+        // Format the join time
         if (userSession.getCreatedTime() != null) {
             SimpleDateFormat sdf = new SimpleDateFormat(TIME_FORMAT);
             dto.setCreatedTime(sdf.format(userSession.getCreatedTime()));

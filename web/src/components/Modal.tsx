@@ -78,7 +78,7 @@ export function Modal({ open, title, onClose, children, footer, width = 440 }: P
           >
             <div className={styles.header}>
               <h3>{title}</h3>
-              <Button variant="ghost" onClick={onClose} aria-label="关闭">
+              <Button variant="ghost" onClick={onClose} aria-label="Close">
                 <span aria-hidden="true">×</span>
               </Button>
             </div>

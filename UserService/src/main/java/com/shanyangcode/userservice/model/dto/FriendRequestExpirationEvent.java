@@ -5,11 +5,11 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 好友申请过期事件DTO
+ * Friend-request expiry event DTO
  *
- * 功能说明：
- * - 定时任务扫描到过期的好友申请时发送到Kafka
- * - 消费者接收后执行过期逻辑（更新数据库状态）
+ * Responsibilities:
+ * - Published to Kafka when the scheduled scan finds an expired friend request
+ * - The consumer applies the expiry by updating the database status
  *
  * Topic: friend-request-expiration-topic
  */
@@ -19,12 +19,12 @@ public class FriendRequestExpirationEvent implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 好友申请ID
+     * Friend request id
      */
     private Long applyFriendId;
 
     /**
-     * 过期时间戳（毫秒）
+     * Expiry timestamp, in milliseconds
      */
     private Long expireTime;
 }

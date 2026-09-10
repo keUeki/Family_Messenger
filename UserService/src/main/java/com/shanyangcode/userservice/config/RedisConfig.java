@@ -9,11 +9,11 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 /**
- * Redis配置类
+ * Redis configuration
  *
- * 功能说明：
- * - 配置Redis Template
- * - 配置Lua脚本Bean
+ * Responsibilities:
+ * - Configures the Redis template
+ * - Configures the Lua script beans
  */
 @Configuration
 public class RedisConfig {
@@ -27,16 +27,16 @@ public class RedisConfig {
     }
 
     /**
-     * 好友申请过期任务扫描Lua脚本
+     * Lua script that scans for expired friend requests
      *
-     * 功能：原子性地从Redis ZSET中取出已到期的好友申请ID并删除
+     * Atomically pops the ids of expired friend requests from the Redis ZSET and removes them.
      *
-     * 参数：
-     * - KEYS[1]: ZSET键名（friend-request-expire-zset）
-     * - ARGV[1]: 当前时间戳（毫秒），如果<=0则使用Redis TIME命令获取
-     * - ARGV[2]: 最大获取条数
+     * Parameters:
+     * - KEYS[1]: the ZSET key (friend-request-expire-zset)
+     * - ARGV[1]: the current timestamp in milliseconds; when <= 0 the Redis TIME command is used instead
+     * - ARGV[2]: the maximum number of entries to fetch
      *
-     * 返回：已到期的好友申请ID列表
+     * Returns: the list of expired friend request ids
      */
     @Bean
     public DefaultRedisScript<List> scanExpiredFriendRequestsScript() {

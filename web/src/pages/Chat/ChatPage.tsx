@@ -101,7 +101,7 @@ export function ChatPage() {
 
   useEffect(() => {
     loadSessions(userId).catch((e) =>
-      toast.error(e instanceof ApiError ? e.message : '加载会话失败'),
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load the conversations'),
     )
   }, [userId, loadSessions])
 
@@ -135,7 +135,7 @@ export function ChatPage() {
         })
       }
     }
-    load().catch((e) => toast.error(e instanceof ApiError ? e.message : '加载消息失败'))
+    load().catch((e) => toast.error(e instanceof ApiError ? e.message : 'Failed to load the messages'))
   }, [activeSessionId, active?.sessionId, isAI, userId, loadMessages, appendMessage, profile.nickname, profile.avatar, active?.avatar, active?.count])
 
   useEffect(() => {
@@ -180,10 +180,10 @@ export function ChatPage() {
           listRef.current.scrollTop = listRef.current.scrollHeight - prevHeight + prevTop
         })
       } else {
-        toast.info('已经到达对话起点')
+        toast.info('You have reached the start of the conversation')
       }
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '历史消息加载失败')
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load the message history')
     }
   }
 
@@ -198,14 +198,14 @@ export function ChatPage() {
   const sendPayload = (type: number, body: ChatMessage['body'], clientMessageId = uid('c')) => {
     if (!active || !activeSessionId) return false
     if (status !== 'open') {
-      toast.warning('实时连接未就绪，请先重连')
+      toast.warning('The realtime connection is not ready, reconnect first')
       return false
     }
     let peer: EntityId | null = null
     if (active.sessionType === SessionType.Single) {
       peer = resolvePeer()
       if (!peer) {
-        toast.error('无法确定聊天对象，请从通讯录重新进入会话')
+        toast.error('Could not work out who this chat is with; open it again from your contacts')
         return false
       }
     }
@@ -237,7 +237,7 @@ export function ChatPage() {
       send(req)
     } catch (e) {
       markMessageFailed(clientMessageId)
-      toast.error(e instanceof Error ? e.message : '发送失败')
+      toast.error(e instanceof Error ? e.message : 'Failed to send')
     }
     return true
   }
@@ -262,8 +262,8 @@ export function ChatPage() {
       answer = completed || answer
       appendMessage({ sessionId: activeSessionId, senderId: AI_USER_ID, type: MessageType.Text, sessionType: SessionType.Robot, body: { content: answer }, createdTime: new Date().toISOString(), messageId: assistantId, pending: false, nickname: 'Infinite AI' })
     } catch (error) {
-      appendMessage({ sessionId: activeSessionId, senderId: AI_USER_ID, type: MessageType.Text, sessionType: SessionType.Robot, body: { content: answer || 'AI 回复失败，请重试。' }, createdTime: new Date().toISOString(), messageId: assistantId, failed: true, nickname: 'Infinite AI' })
-      toast.error(error instanceof Error ? error.message : 'AI 回复失败')
+      appendMessage({ sessionId: activeSessionId, senderId: AI_USER_ID, type: MessageType.Text, sessionType: SessionType.Robot, body: { content: answer || 'The AI could not reply, please try again.' }, createdTime: new Date().toISOString(), messageId: assistantId, failed: true, nickname: 'Infinite AI' })
+      toast.error(error instanceof Error ? error.message : 'The AI could not reply')
     } finally {
       setAiBusy(false)
     }
@@ -288,12 +288,12 @@ export function ChatPage() {
     try {
       setAiBusy(true)
       const historyLog = (useChatStore.getState().messagesBySession[activeSessionId] || [])
-        .map((item) => `${item.senderId === userId ? '用户' : 'AI'}: ${item.body?.content || ''}`)
+        .map((item) => `${item.senderId === userId ? 'User' : 'AI'}: ${item.body?.content || ''}`)
         .join('\n')
-      const result = await aiApi.summary(historyLog || '无历史消息')
+      const result = await aiApi.summary(historyLog || 'No message history')
       appendMessage({ sessionId: activeSessionId, senderId: AI_USER_ID, type: MessageType.Text, sessionType: SessionType.Robot, body: { content: result.summary }, createdTime: new Date().toISOString(), messageId: uid('summary'), nickname: 'Infinite AI' })
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '总结失败')
+      toast.error(error instanceof Error ? error.message : 'Failed to summarise')
     } finally {
       setAiBusy(false)
     }
@@ -303,12 +303,12 @@ export function ChatPage() {
     if (!knowledgeTitle.trim() || !knowledgeContent.trim()) return
     try {
       const result = await aiApi.ingest(knowledgeTitle.trim(), knowledgeContent.trim())
-      toast.success(result.inserted ? '知识已导入' : '相同知识已存在')
+      toast.success(result.inserted ? 'Knowledge imported' : 'That knowledge already exists')
       setKnowledgeOpen(false)
       setKnowledgeTitle('')
       setKnowledgeContent('')
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : '知识导入失败')
+      toast.error(error instanceof Error ? error.message : 'Failed to import the knowledge')
     }
   }
 
@@ -318,11 +318,11 @@ export function ChatPage() {
 
   const onPickImage = async (file: File) => {
     try {
-      toast.info('正在上传图片…')
+      toast.info('Uploading the image...')
       const url = await uploadFile(file, (name) => userApi.getUploadUrl(name))
       sendPayload(MessageType.Image, { content: url })
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '上传失败，请检查 MinIO CORS')
+      toast.error(e instanceof Error ? e.message : 'Upload failed, check the MinIO CORS settings')
     }
   }
 
@@ -340,10 +340,10 @@ export function ChatPage() {
         <div className={styles.sideHeader}>
           <div>
             <span className={styles.sideEyebrow}>RECENT CHATS</span>
-            <h2>最近对话</h2>
-            <p>{sessions.length} 个会话 · {sessions.reduce((sum, item) => sum + (item.count || 0), 0)} 条未读</p>
+            <h2>Recent chats</h2>
+            <p>{sessions.length} conversations - {sessions.reduce((sum, item) => sum + (item.count || 0), 0)} unread</p>
           </div>
-          <IconButton onClick={() => loadSessions(userId)} title="刷新会话" aria-label="刷新会话">
+          <IconButton onClick={() => loadSessions(userId)} title="Refresh conversations" aria-label="Refresh conversations">
             <IconRefresh size={18} />
           </IconButton>
         </div>
@@ -353,8 +353,8 @@ export function ChatPage() {
           </span>
           <input
             className={styles.search}
-            placeholder="搜索会话"
-            aria-label="搜索会话"
+            placeholder="Search conversations"
+            aria-label="Search conversations"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -375,11 +375,11 @@ export function ChatPage() {
               <Avatar src={s.avatar} name={s.name} size={44} />
               <div className={styles.sessionMeta}>
                 <div className={styles.sessionTop}>
-                  <strong>{s.name || `会话 ${s.sessionId}`}</strong>
+                  <strong>{s.name || `Chat ${s.sessionId}`}</strong>
                   <span>{formatTime(s.lastMsgTime)}</span>
                 </div>
                 <div className={styles.sessionBottom}>
-                  <p>{s.lastMsgContent || '暂无消息'}</p>
+                  <p>{s.lastMsgContent || 'No messages yet'}</p>
                   {s.count > 0 ? (
                     <i className={s.count > 0 ? styles.badgePulse : ''}>
                       {s.count > 99 ? '99+' : s.count}
@@ -391,9 +391,9 @@ export function ChatPage() {
           ))}
           {!filteredSessions.length && !loadingSessions ? (
             <EmptyState
-              title="还没有会话"
-              description="去通讯录找好友，或创建一个群聊开始对话。"
-              actionLabel="去通讯录"
+              title="No conversations yet"
+              description="Find a friend in your contacts, or create a group to start talking."
+              actionLabel="Go to contacts"
               onAction={() => navigate('/app/contacts')}
             />
           ) : null}
@@ -406,7 +406,7 @@ export function ChatPage() {
             <div className={styles.chatHeader}>
               {isMobile ? (
                 <button type="button" className={styles.backBtn} onClick={backToList}>
-                  返回
+                  Back
                 </button>
               ) : null}
               <Avatar src={active.avatar} name={isAI ? 'Infinite AI' : active.name} size={40} />
@@ -415,40 +415,40 @@ export function ChatPage() {
                 <span>
                   <i className={isAI || status === 'open' ? styles.online : ''} />
                   {isAI
-                    ? '知识增强助手'
+                    ? 'Knowledge-augmented assistant'
                     : active.sessionType === SessionType.Group
-                      ? '群组对话'
+                      ? 'Group conversation'
                       : status === 'open'
-                        ? '实时在线'
-                        : '等待连接'}
+                        ? 'Online'
+                        : 'Waiting to connect'}
                 </span>
               </div>
               {isAI ? (
                 <div className={styles.aiActions}>
                   <Button variant="ghost" onClick={() => void summarizeAI()} disabled={aiBusy}>
-                    总结对话
+                    Summarise chat
                   </Button>
                   <Button variant="secondary" onClick={() => setKnowledgeOpen(true)}>
-                    导入知识
+                    Import knowledge
                   </Button>
                 </div>
               ) : (
-                <div className={styles.chatMeta}>会话 #{active.sessionId}</div>
+                <div className={styles.chatMeta}>Chat #{active.sessionId}</div>
               )}
             </div>
 
             <div className={styles.messages} ref={listRef} onScroll={onMessagesScroll}>
               {messages.length ? (
                 <button type="button" className={styles.loadMore} onClick={() => void onLoadMore()}>
-                  <span>↑</span> 查看更早的消息
+                  <span>↑</span> Load earlier messages
                 </button>
               ) : null}
-              {loadingMessages ? <p className={styles.muted}>加载消息…</p> : null}
+              {loadingMessages ? <p className={styles.muted}>Loading messages...</p> : null}
               {!loadingMessages && !messages.length ? (
                 <div className={styles.threadEmpty}>
                   <span>∞</span>
-                  <strong>这是对话的开始</strong>
-                  <p>发一条消息，开启你们的 InfiniteChat。</p>
+                  <strong>This is the start of the conversation</strong>
+                  <p>Send a message to begin your InfiniteChat.</p>
                 </div>
               ) : null}
               {messages.map((m, idx) => {
@@ -501,8 +501,8 @@ export function ChatPage() {
                             ].join(' ')}
                           >
                             {formatTime(m.createdTime)}
-                            {m.pending ? ' · 发送中' : ''}
-                            {m.failed ? ' · 失败，点击气泡重试' : ''}
+                            {m.pending ? ' - sending' : ''}
+                            {m.failed ? ' - failed, tap the bubble to retry' : ''}
                           </span>
                         ) : null}
                       </div>
@@ -517,13 +517,13 @@ export function ChatPage() {
                 <div className={styles.connBar}>
                   <span><i />
                     {status === 'connecting'
-                      ? '正在连接实时通道…'
+                      ? 'Connecting to the realtime channel...'
                       : status === 'missing'
-                        ? '未分配实时节点'
-                        : '实时连接已断开'}
+                        ? 'No realtime node assigned'
+                        : 'The realtime connection has dropped'}
                   </span>
                   <Button type="button" variant="secondary" onClick={() => connect()}>
-                    重连
+                    Reconnect
                   </Button>
                 </div>
               ) : null}
@@ -540,8 +540,8 @@ export function ChatPage() {
                 <IconButton
                   active={showEmoji}
                   onClick={() => setShowEmoji((v) => !v)}
-                  title="表情"
-                  aria-label="表情"
+                  title="Emoji"
+                  aria-label="Emoji"
                 >
                   <IconSmile size={18} />
                 </IconButton>
@@ -549,14 +549,14 @@ export function ChatPage() {
                   <>
                     <IconButton
                       onClick={() => fileRef.current?.click()}
-                      title="图片"
-                      aria-label="图片"
+                      title="Image"
+                      aria-label="Image"
                     >
                       <IconImage size={18} />
                     </IconButton>
                   </>
                 ) : null}
-                <span className={styles.hint}>Enter 发送 · Shift+Enter 换行</span>
+                <span className={styles.hint}>Enter to send - Shift+Enter for a new line</span>
                 <input
                   ref={fileRef}
                   type="file"
@@ -573,10 +573,10 @@ export function ChatPage() {
                 <textarea
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder={isAI ? '向 Infinite AI 提问…' : status === 'open' ? '输入消息…' : '请先重连实时通道…'}
+                  placeholder={isAI ? 'Ask Infinite AI...' : status === 'open' ? 'Type a message...' : 'Reconnect the realtime channel first...'}
                   rows={2}
                   maxLength={4000}
-                  aria-label="输入消息"
+                  aria-label="Message input"
                   onPaste={(e) => {
                     const item = Array.from(e.clipboardData.items).find((i) =>
                       i.type.startsWith('image/'),
@@ -603,7 +603,7 @@ export function ChatPage() {
                   loading={isAI && aiBusy}
                 >
                   <IconSend size={16} />
-                  发送
+                  Send
                 </Button>
               </div>
             </div>
@@ -611,9 +611,9 @@ export function ChatPage() {
         ) : (
           <div className={styles.noSelection}>
             <EmptyState
-              title="选择一个对话"
+              title="Pick a conversation"
               description={
-                isMobile ? '从会话列表打开聊天。' : '从左侧打开会话，或从通讯录发起聊天。'
+                isMobile ? 'Open a chat from the conversation list.' : 'Open a conversation on the left, or start one from your contacts.'
               }
             />
           </div>
@@ -621,43 +621,43 @@ export function ChatPage() {
       </section>
 
 
-      <Modal open={Boolean(lightbox)} title="图片" onClose={() => setLightbox(null)} width={640}>
-        {lightbox ? <img className={styles.lightbox} src={lightbox} alt="预览" /> : null}
+      <Modal open={Boolean(lightbox)} title="Image" onClose={() => setLightbox(null)} width={640}>
+        {lightbox ? <img className={styles.lightbox} src={lightbox} alt="Preview" /> : null}
       </Modal>
 
       <Modal
         open={knowledgeOpen}
-        title="导入个人知识"
+        title="Import personal knowledge"
         onClose={() => setKnowledgeOpen(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setKnowledgeOpen(false)}>
-              取消
+              Cancel
             </Button>
             <Button
               onClick={() => void ingestKnowledge()}
               disabled={!knowledgeTitle.trim() || !knowledgeContent.trim()}
             >
-              导入
+              Import
             </Button>
           </>
         }
       >
         <div className={styles.knowledgeForm}>
-          <p>这段内容只会进入你的私有知识库，并用于后续回答的相关内容检索。</p>
+          <p>This content only goes into your private knowledge base, where it is retrieved to inform later answers.</p>
           <Input
-            label="标题"
+            label="Title"
             value={knowledgeTitle}
             onChange={(event) => setKnowledgeTitle(event.target.value)}
-            placeholder="例如：项目发布流程"
+            placeholder="e.g. Release process"
           />
           <label>
-            <span>内容</span>
+            <span>Content</span>
             <textarea
               value={knowledgeContent}
               onChange={(event) => setKnowledgeContent(event.target.value)}
-              placeholder="粘贴要让 Infinite AI 参考的资料"
-              aria-label="知识内容"
+              placeholder="Paste the material you want Infinite AI to draw on"
+              aria-label="Knowledge content"
               rows={8}
               maxLength={20000}
             />
@@ -688,7 +688,7 @@ function MessageBubble({
           else if (message.body.content) onOpenImage(message.body.content)
         }}
       >
-        <img className={styles.image} src={message.body.content} alt="图片消息" />
+        <img className={styles.image} src={message.body.content} alt="Image message" />
       </button>
     )
   }

@@ -21,13 +21,13 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 通知推送服务实现类
+ * Notification push service implementation
  * <p>
- * 实现说明：
- * - 使用Kafka异步发送系统通知消息
- * - 替代原有的HTTP同步调用方式
- * - 符合IM项目通知消息设计方案
- * - 提高系统性能和可靠性
+ * Implementation notes:
+ * - Publishes system notifications asynchronously over Kafka
+ * - Replaces the earlier synchronous HTTP calls
+ * - Follows the notification design used across this IM project
+ * - Improves throughput and reliability
  */
 @Slf4j
 @Service
@@ -41,60 +41,60 @@ public class NotificationServiceImpl implements NotificationService {
 
 
     /**
-     * 推送好友申请通知
+     * Pushes a friend request notification
      *
-     * 实现逻辑：
-     * 1. 构建完整的SystemNotificationMessage
-     * 2. 生成唯一messageId
-     * 3. 设置senderId为申请人ID
-     * 4. 发送到Kafka的system-notification-topic
-     * 5. RealTimeService消费后推送给在线用户
+     * Steps:
+     * 1. Build the complete SystemNotificationMessage
+     * 2. Generate a unique messageId
+     * 3. Set senderId to the requester's id
+     * 4. Publish it to the Kafka system-notification-topic
+     * 5. RealTimeService consumes it and pushes it to the online user
      *
-     * @param userId       接收通知的用户ID
-     * @param notification 好友申请通知信息
+     * @param userId       the id of the user receiving the notification
+     * @param notification the friend request notification payload
      */
     @Override
     public void pushNewApply(Long userId, FriendApplicationNotificationDTO notification) {
         try {
             SystemNotificationMessage message = new SystemNotificationMessage();
             message.setMessageId(generateMessageId());
-            message.setSessionId(null); // 好友申请不属于任何会话
-            message.setSenderId(notification.getApplyUserId()); // 申请人ID
+            message.setSessionId(null); // a friend request does not belong to any session
+            message.setSenderId(notification.getApplyUserId()); // the requester's id
             message.setReceiverId(userId);
             message.setType(MessageTypeConstant.TYPE_SYSTEM_NEW_APPLY); // 101
-            message.setSessionType(null); // 不适用于会话
+            message.setSessionType(null); // not tied to a session
             message.setTimestamp(System.currentTimeMillis());
 
-            // 构建body
+            // Build the body
             Map<String, Object> body = new HashMap<>();
             body.put("nickname", notification.getApplyUserName());
             body.put("avatar", notification.getApplyFriendAvatar());
             body.put("msg", notification.getMessage());
             message.setBody(body);
 
-            sendNotification(message, "好友申请通知");
+            sendNotification(message, "friend request notification");
 
         } catch (Exception e) {
-            log.error("发送好友申请通知失败，用户ID: {}, 错误: {}", userId, e.getMessage(), e);
+            log.error("Failed to publish the friend request notification, user id: {}, error: {}", userId, e.getMessage(), e);
         }
     }
 
 
     /**
-     * 推送新会话通知
+     * Pushes a new-session notification
      * <p>
-     * 实现逻辑：
-     * 1. 构建完整的SystemNotificationMessage
-     * 2. sessionId/sessionType 置于消息顶层，body 只放会话名和头像
-     * 3. senderId 为同意申请的一方，receiverId 为发起申请的一方
-     * 4. 发送到Kafka的system-notification-topic
-     * 5. RealTimeService消费后推送给在线用户
+     * Steps:
+     * 1. Build the complete SystemNotificationMessage
+     * 2. sessionId and sessionType sit at the top level; the body carries only the session name and avatar
+     * 3. senderId is the party who accepted, receiverId the party who made the request
+     * 4. Publish it to the Kafka system-notification-topic
+     * 5. RealTimeService consumes it and pushes it to the online user
      *
-     * @param senderId     触发该会话的用户ID（同意申请的一方）
-     * @param userId       接收通知的用户ID（发起申请的一方）
-     * @param sessionId    会话ID
-     * @param sessionType  会话类型（0-单聊，1-群聊，2-机器人）
-     * @param notification 新会话通知信息
+     * @param senderId     the id of the user who triggered the session (the party who accepted)
+     * @param userId       the id of the user receiving the notification (the party who made the request)
+     * @param sessionId    the session id
+     * @param sessionType  the session type (0 one-to-one, 1 group, 2 bot)
+     * @param notification the new-session notification payload
      */
     @Override
     public void pushNewSession(Long senderId, Long userId, Long sessionId, Integer sessionType,
@@ -109,33 +109,33 @@ public class NotificationServiceImpl implements NotificationService {
             message.setSessionType(sessionType);
             message.setTimestamp(System.currentTimeMillis());
 
-            // 构建body
+            // Build the body
             Map<String, Object> body = new HashMap<>();
             body.put("sessionName", notification.getSessionName());
             body.put("avatar", notification.getAvatar());
             message.setBody(body);
 
-            sendNotification(message, "新会话通知");
+            sendNotification(message, "new session notification");
 
         } catch (Exception e) {
-            log.error("发送新会话通知失败，用户ID: {}, 会话ID: {}, 错误: {}", userId, sessionId, e.getMessage(), e);
+            log.error("Failed to publish the new-session notification, user id: {}, session id: {}, error: {}", userId, sessionId, e.getMessage(), e);
         }
     }
 
 
     /**
-     * 推送新群聊会话通知
+     * Pushes a new-group-session notification
      *
-     * 实现逻辑：
-     * 1. 构建完整的SystemNotificationMessage
-     * 2. 生成唯一messageId
-     * 3. 将sessionId、sessionType提升到顶层
-     * 4. 发送到Kafka的system-notification-topic
-     * 5. RealTimeService消费后推送给在线用户
+     * Steps:
+     * 1. Build the complete SystemNotificationMessage
+     * 2. Generate a unique messageId
+     * 3. Lift sessionId and sessionType to the top level
+     * 4. Publish it to the Kafka system-notification-topic
+     * 5. RealTimeService consumes it and pushes it to the online user
      *
-     * @param userId       接收通知的用户ID
-     * @param sessionId    群聊会话ID
-     * @param notification 新群聊会话通知信息（仅包含sessionName和avatar）
+     * @param userId       the id of the user receiving the notification
+     * @param sessionId    the group session id
+     * @param notification the new-group-session notification payload (carries only sessionName and avatar)
      */
     @Override
     public void pushGroupNewSession(Long userId, Long sessionId, NewGroupSessionNotificationDTO notification) {
@@ -143,13 +143,13 @@ public class NotificationServiceImpl implements NotificationService {
             SystemNotificationMessage message = new SystemNotificationMessage();
             message.setMessageId(generateMessageId());
             message.setSessionId(sessionId);
-            message.setSenderId(null); // 系统消息
+            message.setSenderId(null); // system message
             message.setReceiverId(userId);
             message.setType(MessageTypeConstant.TYPE_SYSTEM_NEW_GROUP_SESSION); // 103
-            message.setSessionType(SessionTypeConstant.GROUP_TYPE); // 群聊固定为1
+            message.setSessionType(SessionTypeConstant.GROUP_TYPE); // always 1 for a group chat
             message.setTimestamp(System.currentTimeMillis());
 
-            // 构建body
+            // Build the body
             Map<String, Object> body = new HashMap<>();
             body.put("sessionName", notification.getSessionName());
             body.put("avatar", notification.getAvatar());
@@ -157,27 +157,27 @@ public class NotificationServiceImpl implements NotificationService {
             body.put("membersCount", notification.getMembersCount());
             message.setBody(body);
 
-            sendNotification(message, "群组邀请通知");
+            sendNotification(message, "group invitation notification");
 
         } catch (Exception e) {
-            log.error("发送新群聊会话通知失败，用户ID: {}, 会话ID: {}, 错误: {}", userId, sessionId, e.getMessage(), e);
+            log.error("Failed to publish the new-group-session notification, user id: {}, session id: {}, error: {}", userId, sessionId, e.getMessage(), e);
         }
     }
 
 
     /**
-     * 推送群聊踢出/退出通知
+     * Pushes a group removal/leave notification
      *
-     * 实现逻辑：
-     * 1. 构建完整的SystemNotificationMessage
-     * 2. 生成唯一messageId
-     * 3. 将sessionId、sessionType提升到顶层
-     * 4. 发送到Kafka的system-notification-topic
-     * 5. RealTimeService消费后推送给在线用户
+     * Steps:
+     * 1. Build the complete SystemNotificationMessage
+     * 2. Generate a unique messageId
+     * 3. Lift sessionId and sessionType to the top level
+     * 4. Publish it to the Kafka system-notification-topic
+     * 5. RealTimeService consumes it and pushes it to the online user
      *
-     * @param userId       接收通知的用户ID
-     * @param sessionId    群聊会话ID
-     * @param notification 踢出/退出通知信息（operatorId 为 null 表示主动退出）
+     * @param userId       the id of the user receiving the notification
+     * @param sessionId    the group session id
+     * @param notification the removal/leave notification payload (a null operatorId means the member left voluntarily)
      */
     @Override
     public void pushGroupKickNotification(Long userId, Long sessionId, GroupKickNotificationDTO notification) {
@@ -185,56 +185,56 @@ public class NotificationServiceImpl implements NotificationService {
             SystemNotificationMessage message = new SystemNotificationMessage();
             message.setMessageId(generateMessageId());
             message.setSessionId(sessionId);
-            message.setSenderId(null); // 系统消息
+            message.setSenderId(null); // system message
             message.setReceiverId(userId);
             message.setType(MessageTypeConstant.TYPE_SYSTEM_GROUP_KICK); // 104
-            message.setSessionType(SessionTypeConstant.GROUP_TYPE); // 群聊固定为1
+            message.setSessionType(SessionTypeConstant.GROUP_TYPE); // always 1 for a group chat
             message.setTimestamp(System.currentTimeMillis());
 
-            // 构建body
+            // Build the body
             Map<String, Object> body = new HashMap<>();
             body.put("memberIds", notification.getMemberIds());
             body.put("operatorId", notification.getOperatorId());
             message.setBody(body);
 
-            sendNotification(message, "群组踢出通知");
+            sendNotification(message, "group removal notification");
 
         } catch (Exception e) {
-            log.error("发送群聊踢出通知失败，用户ID: {}, 会话ID: {}, 错误: {}", userId, sessionId, e.getMessage(), e);
+            log.error("Failed to publish the group removal notification, user id: {}, session id: {}, error: {}", userId, sessionId, e.getMessage(), e);
         }
     }
 
 
     /**
-     * 生成消息唯一ID
+     * Generates a unique message id
      *
-     * 格式：msg_{timestamp}_{snowflakeId}
+     * Format: msg_{timestamp}_{snowflakeId}
      *
-     * @return 消息ID
+     * @return the message id
      */
     private String generateMessageId() {
         return "msg_" + System.currentTimeMillis() + "_" + SnowflakeUtil.nextId();
     }
 
     /**
-     * 发送通知消息到 Kafka
+     * Publishes the notification message to Kafka
      *
-     * @param message          系统通知消息
-     * @param notificationName 通知名称（用于日志）
+     * @param message          the system notification message
+     * @param notificationName the notification's name, used for logging
      */
     private void sendNotification(SystemNotificationMessage message, String notificationName) {
         String messageJson = JSONUtil.toJsonStr(message);
 
         kafkaTemplate.send(
                 KafkaTopicConstant.TOPIC_SYSTEM_NOTIFICATION,
-                String.valueOf(message.getReceiverId()), // 使用 ReceiverId 作为key，保证同一用户的消息顺序
+                String.valueOf(message.getReceiverId()), // use receiverId as the key, so one user's messages stay ordered
                 messageJson
         ).whenComplete((result, ex) -> {
             if (ex == null) {
-                log.info("{}发送成功，messageId: {}, 用户ID: {}, type: {}",
+                log.info("Published {} successfully, messageId: {}, user id: {}, type: {}",
                         notificationName, message.getMessageId(), message.getReceiverId(), message.getType());
             } else {
-                log.error("{}发送失败，messageId: {}, 用户ID: {}, 错误: {}",
+                log.error("Failed to publish {}, messageId: {}, user id: {}, error: {}",
                         notificationName, message.getMessageId(), message.getReceiverId(), ex.getMessage());
             }
         });

@@ -6,9 +6,9 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 好友DTO
+ * Friend DTO
  *
- * 用于返回好友列表数据
+ * Carries a row of the friend list
  */
 @Data
 public class FriendDTO implements Serializable {
@@ -17,32 +17,32 @@ public class FriendDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 好友用户ID
+     * Friend's user id
      */
     private String userId;
 
     /**
-     * 好友昵称
+     * Friend's nickname
      */
     private String nickname;
 
     /**
-     * 好友头像URL
+     * Friend's avatar URL
      */
     private String avatar;
 
     /**
-     * 好友状态 (0:好友 1:拉黑 2:删除)
+     * Friendship status (0: friend, 1: blocked, 2: deleted)
      */
     private Integer status;
 
     /**
-     * 个性签名
+     * Bio
      */
     private String signature;
 
     /**
-     * 会话ID
+     * Session id
      */
     private String sessionId;
 }

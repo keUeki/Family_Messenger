@@ -2,13 +2,13 @@ package com.shanyangcode.common.constant;
 
 public class SessionTypeConstant {
 
-    // 单聊
+    // One-to-one chat
     public static final int SIGNAL_TYPE = 0;
 
-    // 群聊
+    // Group chat
     public static final int GROUP_TYPE = 1;
 
-    // 机器人
+    // Bot
     public static final int ROBOT_TYPE = 2;
 
 

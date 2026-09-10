@@ -7,7 +7,7 @@ import java.util.List;
 import lombok.Data;
 
 /**
- * 踢出群成员响应DTO
+ * Remove-group-members response DTO
  */
 @Data
 public class KickGroupMembersResponse implements Serializable {
@@ -16,7 +16,7 @@ public class KickGroupMembersResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 成功踢出的成员ID列表
+     * Ids of the members removed successfully
      */
     private List<String> successIds;
 }

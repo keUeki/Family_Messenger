@@ -4,9 +4,9 @@ package com.shanyangcode.userservice.constants;
 
 public class UserConstant {
 
-    public static final String EMAIL_SUBJECT = "【验证码】";
+    public static final String EMAIL_SUBJECT = "[Verification code]";
 
-    public static final String SEND_EMAIL_SUCCESS = "发送邮件成功";
+    public static final String SEND_EMAIL_SUCCESS = "Email sent successfully";
     
     public static final Integer CAPTCHA_EXPIRE_TIME = 5;
 

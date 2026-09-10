@@ -6,11 +6,11 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 修改好友申请响应DTO
+ * Friend-request update response DTO
  * <p>
- * 用于返回通过好友申请后新建的会话信息。
- * userId 与 sessionId 使用 String 而非 Long，避免前端 JS Number
- * 只有 53 位有效精度、截断雪花ID的问题。
+ * Returns the session created once a friend request is accepted.
+ * userId and sessionId are Strings rather than Longs, because a JS Number has only
+ * 53 bits of precision and would truncate a snowflake id.
  */
 @Data
 public class ModifyFriendApplicationResponse implements Serializable {
@@ -19,27 +19,27 @@ public class ModifyFriendApplicationResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 对方用户ID
+     * The other party's user id
      */
     private String userId;
 
     /**
-     * 会话ID
+     * Session id
      */
     private String sessionId;
 
     /**
-     * 会话类型 (0:单聊 1:群聊)
+     * Session type (0: one-to-one, 1: group)
      */
     private Integer sessionType;
 
     /**
-     * 会话名称
+     * Session name
      */
     private String sessionName;
 
     /**
-     * 头像URL
+     * Avatar URL
      */
     private String avatar;
 }

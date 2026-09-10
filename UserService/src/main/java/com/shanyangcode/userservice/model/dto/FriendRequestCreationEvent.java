@@ -5,11 +5,11 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 好友申请创建事件DTO
+ * Friend-request creation event DTO
  *
- * 功能说明：
- * - 好友申请创建时发送到Kafka
- * - 消费者接收后注册到Redis ZSET延迟队列
+ * Responsibilities:
+ * - Published to Kafka when a friend request is created
+ * - The consumer registers it in the Redis ZSET delay queue
  *
  * Topic: friend-request-creation-topic
  */
@@ -19,18 +19,18 @@ public class FriendRequestCreationEvent implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 好友申请ID
+     * Friend request id
      */
     private Long applyFriendId;
 
     /**
-     * 创建时间戳（毫秒）
+     * Creation timestamp, in milliseconds
      */
     private Long createTime;
 
     /**
-     * 过期时间戳（毫秒）
-     * 默认：createTime + 24小时
+     * Expiry timestamp, in milliseconds
+     * Defaults to createTime + 24 hours
      */
     private Long expireTime;
 }

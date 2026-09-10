@@ -1,26 +1,26 @@
 package com.shanyangcode.common.enums;
 
 /**
- * 用户会话状态枚举
+ * User-session status enum
  * <p>
- * 用于定义 user_session 表中的 status 字段值
- * 统一所有服务对用户会话状态的判断
+ * Defines the values of the status column in the user_session table
+ * so that every service checks user-session status the same way.
  * <p>
- * 数据库存储值说明：
- * - 0: 正常状态
- * - 1: 已删除
+ * Stored values:
+ * - 0: active
+ * - 1: deleted
  */
 public enum UserSessionStatusEnum {
 
     /**
-     * 状态：正常
+     * Status: active
      */
-    NORMAL(0, "正常"),
+    NORMAL(0, "Active"),
 
     /**
-     * 状态：已删除
+     * Status: deleted
      */
-    DELETED(1, "已删除");
+    DELETED(1, "Deleted");
 
     private final int code;
     private final String description;

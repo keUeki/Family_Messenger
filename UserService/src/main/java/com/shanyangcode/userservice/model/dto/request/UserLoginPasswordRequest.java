@@ -6,23 +6,23 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
- * 用户密码登录 DTO
+ * Password login DTO
  */
 @Data
 public class UserLoginPasswordRequest {
 
     /**
-     * 邮箱
+     * Email address
      */
-    @NotBlank(message = "邮箱不能为空")
-    @Email(message = "邮箱格式不正确")
+    @NotBlank(message = "Email address must not be blank")
+    @Email(message = "Email address is not valid")
     private String email;
 
 
     /**
-     * 密码
+     * Password
      */
-    @NotBlank(message = "密码不能为空")
-    @Size(min = 6, max = 20, message = "密码长度必须在6-20位之间")
+    @NotBlank(message = "Password must not be blank")
+    @Size(min = 6, max = 20, message = "Password must be between 6 and 20 characters")
     private String password;
 }

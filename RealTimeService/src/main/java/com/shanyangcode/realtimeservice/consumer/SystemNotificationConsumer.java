@@ -17,18 +17,18 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 /**
- * 系统通知消息消费者
+ * System notification consumer
  * <p>
- * 功能说明：
- * - 消费UserService发送的系统通知消息
- * - 通过WebSocket直接转发完整的消息给在线用户
- * - 符合IM项目通知消息设计方案
- * - 支持多种类型的系统通知（新会话、好友申请、群聊邀请等）
+ * Responsibilities:
+ * - Consumes the system notifications published by UserService
+ * - Forwards the complete message over WebSocket to online users
+ * - Follows the notification design used across this IM project
+ * - Supports several notification types (new session, friend request, group invite, ...)
  * <p>
- * 消息类型：
- * - 101：收到好友申请通知
- * - 102：新会话创建通知
- * - 103：新群聊会话创建通知
+ * Message types:
+ * - 101: friend request received
+ * - 102: new session created
+ * - 103: new group session created
  */
 @Slf4j
 @Component
@@ -44,16 +44,16 @@ public class SystemNotificationConsumer {
     }
 
     /**
-     * 消费系统通知消息
+     * Consumes a system notification message
      * <p>
-     * 处理流程：
-     * 1. 接收 Kafka 消息（完整的 SystemNotificationMessage JSON）
-     * 2. 解析消息获取接收者ID
-     * 3. 根据接收者ID查找对应的 WebSocket Channel
-     * 4. 转发完整消息到 WebSocket
-     * 5. 发送到 Kafka 的 store-notification-topic 进行持久化
+     * Processing steps:
+     * 1. Receive the Kafka message (a complete SystemNotificationMessage JSON payload)
+     * 2. Parse it to obtain the receiver id
+     * 3. Look up the matching WebSocket channel for that receiver
+     * 4. Forward the complete message over the WebSocket
+     * 5. Publish to the Kafka store-notification-topic for persistence
      * <p>
-     * 消息格式：
+     * Message shape:
      * {
      * "messageId": "msg_1699999999000_123456789",
      * "sessionId": 123,
@@ -63,12 +63,12 @@ public class SystemNotificationConsumer {
      * "sessionType": 0,
      * "timestamp": 1699999999000,
      * "body": {
-     * "sessionName": "张三",
+     * "sessionName": "Alice",
      * "avatar": "http://..."
      * }
      * }
      *
-     * @param message Kafka消息（完整的SystemNotificationMessage JSON）
+     * @param message the Kafka message (a complete SystemNotificationMessage JSON payload)
      */
     @KafkaListener(
             topics = CommonConstant.KAFKA_SYSTEM_NOTIFICATION_TOPIC,
@@ -77,52 +77,52 @@ public class SystemNotificationConsumer {
     )
     public void consumeSystemNotification(String message) {
         try {
-            log.debug("收到系统通知消息: {}", message);
+            log.debug("System notification received: {}", message);
 
-            // 1. 解析消息获取接收者ID和messageId（用于日志）
+            // 1. Parse the message to obtain the receiver id and messageId (used for logging)
             Map<String, Object> notificationMap = JSONUtil.toBean(message, Map.class);
             String messageId = (String) notificationMap.get("messageId");
             Integer type = (Integer) notificationMap.get("type");
             Long receiverId = Long.parseLong(notificationMap.get("receiverId").toString());
 
-            // 2. 获取用户的WebSocket Channel（使用静态方法）
+            // 2. Look up the user's WebSocket channel (via the static accessor)
             Channel channel = ChannelManager.getChannelByUserId(String.valueOf(receiverId));
 
             if (channel != null && channel.isActive()) {
-                // 3. 用户在线，直接转发完整消息
+                // 3. The user is online, forward the complete message straight away
                 TextWebSocketFrame frame = new TextWebSocketFrame(message);
                 channel.writeAndFlush(frame).addListener((ChannelFutureListener) future -> {
                     if (future.isSuccess()) {
-                        log.info("系统通知推送成功，messageId: {}, receiverId: {}, type: {}",
+                        log.info("System notification pushed, messageId: {}, receiverId: {}, type: {}",
                                 messageId, receiverId, type);
                     } else {
-                        log.error("系统通知推送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
+                        log.error("System notification push failed, messageId: {}, receiverId: {}, type: {}, error: {}",
                                 messageId, receiverId, type,
-                                future.cause() != null ? future.cause().getMessage() : "未知错误");
+                                future.cause() != null ? future.cause().getMessage() : "unknown error");
                     }
                 });
             } else {
-                // 4. 用户不在线（没有可用的 Channel），一律转入持久化 topic。
-                //    注意：user:offline: 标记只在用户断开连接时写入，从未连接过的用户不存在该标记，
-                //    因此不能把它作为是否持久化的判断条件，否则通知会被静默丢弃。
+                // 4. The user is offline (no usable channel), so always fall back to the persistence topic.
+                //    Note: the user:offline: marker is only written when a user disconnects, so a user who
+                //    never connected has no marker; gating persistence on it would silently drop notifications.
                 boolean offlineMarked = OnlineStatusUtil.isUserOffline(stringRedisTemplate, receiverId);
-                log.info("用户不在线，系统通知发送到Kafka进行持久化，messageId: {}, receiverId: {}, type: {}, 存在离线标记: {}",
+                log.info("User is offline, publishing the system notification to Kafka for persistence, messageId: {}, receiverId: {}, type: {}, offline marker present: {}",
                         messageId, receiverId, type, offlineMarked);
 
                 kafkaTemplate.send(CommonConstant.KAFKA_STORE_NOTIFICATION_TOPIC, message)
                         .whenComplete((result, ex) -> {
                             if (ex == null) {
-                                log.info("系统通知持久化消息发送成功，messageId: {}, receiverId: {}, type: {}",
+                                log.info("System notification persisted successfully, messageId: {}, receiverId: {}, type: {}",
                                         messageId, receiverId, type);
                             } else {
-                                log.error("系统通知持久化消息发送失败，messageId: {}, receiverId: {}, type: {}, 错误: {}",
+                                log.error("Failed to persist the system notification, messageId: {}, receiverId: {}, type: {}, error: {}",
                                         messageId, receiverId, type, ex.getMessage());
                             }
                         });
             }
 
         } catch (Exception e) {
-            log.error("处理系统通知消息失败，消息: {}, 错误: {}", message, e.getMessage(), e);
+            log.error("Failed to handle the system notification, message: {}, error: {}", message, e.getMessage(), e);
         }
     }
 }

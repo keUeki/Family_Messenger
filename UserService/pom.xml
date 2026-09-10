@@ -42,7 +42,7 @@
             <version>2.0.24</version>
         </dependency>
 
-        <!--        qq 邮件所需jar依赖-->
+        <!--        JAR dependency required for QQ email-->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-email</artifactId>

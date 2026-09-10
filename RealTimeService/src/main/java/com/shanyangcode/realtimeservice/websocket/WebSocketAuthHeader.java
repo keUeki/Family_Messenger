@@ -22,7 +22,7 @@ import java.util.Map;
 public class WebSocketAuthHeader extends ChannelInboundHandlerAdapter {
 
     /**
-     * 浏览器的 WebSocket API 无法自定义请求头，因此同时支持从查询参数中读取 token
+     * The browser WebSocket API cannot set custom headers, so the token is also accepted as a query parameter.
      */
     private static final String TOKEN_QUERY_PARAM = "accessToken";
 
@@ -36,7 +36,7 @@ public class WebSocketAuthHeader extends ChannelInboundHandlerAdapter {
             QueryStringDecoder queryStringDecoder = new QueryStringDecoder(request.uri());
             String token = resolveToken(request, queryStringDecoder);
             if (StringUtils.isEmpty(token)) {
-                log.warn("WebSocket 握手被拒绝：缺少 token，uri={}, remote={}",
+                log.warn("WebSocket handshake rejected: token missing, uri={}, remote={}",
                         queryStringDecoder.path(), ctx.channel().remoteAddress());
                 ctx.close();
                 return;
@@ -44,36 +44,36 @@ public class WebSocketAuthHeader extends ChannelInboundHandlerAdapter {
             try {
                 Claims claims = JwtUtil.parse(token);
                 if (claims == null) {
-                    log.warn("WebSocket 握手被拒绝：token 无效或已过期，remote={}", ctx.channel().remoteAddress());
+                    log.warn("WebSocket handshake rejected: token is invalid or expired, remote={}", ctx.channel().remoteAddress());
                     ctx.close();
                     return;
                 }
 
                 String userId = claims.getSubject();
                 if (userId == null || userId.isEmpty()) {
-                    log.warn("WebSocket 握手被拒绝：token 中不包含用户标识，remote={}", ctx.channel().remoteAddress());
+                    log.warn("WebSocket handshake rejected: token carries no user identifier, remote={}", ctx.channel().remoteAddress());
                     ctx.close();
                     return;
                 }
 
                 String storedToken = stringRedisTemplate.opsForValue().get(CommonConstant.ACCESS_TOKEN_PREFIX + userId);
                 if (StringUtils.isEmpty(storedToken) || !token.equals(storedToken)) {
-                    log.warn("WebSocket 握手被拒绝：token 与 Redis 中保存的不一致，userId={}, redis中存在={}",
+                    log.warn("WebSocket handshake rejected: token does not match the one stored in Redis, userId={}, present in redis={}",
                             userId, !StringUtils.isEmpty(storedToken));
                     ctx.close();
                     return;
                 }
 
-                // 去掉查询参数，保证 WebSocketServerProtocolHandler 能够匹配到握手路径
+                // Strip the query string so WebSocketServerProtocolHandler can match the handshake path
                 request.setUri(queryStringDecoder.path());
 
-                // 3. 绑定用户与 channel
+                // 3. Bind the user to the channel
                 ChannelManager.addUserChannel(userId, ctx.channel());
                 ChannelManager.addChannelUser(userId, ctx.channel());
-                log.info("WebSocket 握手鉴权通过，userId={}, remote={}", userId, ctx.channel().remoteAddress());
+                log.info("WebSocket handshake authenticated, userId={}, remote={}", userId, ctx.channel().remoteAddress());
                 ctx.fireChannelRead(msg);
             } catch (Exception e) {
-                log.error("WebSocket 握手鉴权发生异常，remote={}", ctx.channel().remoteAddress(), e);
+                log.error("Unexpected error during WebSocket handshake authentication, remote={}", ctx.channel().remoteAddress(), e);
                 ctx.close();
             }
 
@@ -83,7 +83,7 @@ public class WebSocketAuthHeader extends ChannelInboundHandlerAdapter {
     }
 
     /**
-     * 依次尝试从 Authorization 请求头和 accessToken 查询参数中解析 token
+     * Tries the Authorization header first, then the accessToken query parameter.
      */
     private String resolveToken(FullHttpRequest request, QueryStringDecoder queryStringDecoder) {
         String authHeader = request.headers().get("Authorization");

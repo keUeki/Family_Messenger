@@ -6,17 +6,17 @@ import java.io.Serializable;
 import java.util.Map;
 
 /**
- * 系统通知消息DTO
+ * System notification message DTO
  *
- * 功能说明：
- * - 统一的系统通知消息格式，符合IM项目通知消息设计方案
- * - 通过type字段区分不同类型的系统通知
- * - 通过Kafka传输，由RealTimeService消费并推送给用户
+ * Responsibilities:
+ * - The single system notification format used across this IM project
+ * - The type field distinguishes the kinds of system notification
+ * - Travels over Kafka; RealTimeService consumes it and pushes it to the user
  *
- * 消息类型（type字段）：
- * - 101：收到好友申请通知
- * - 102：新会话创建通知
- * - 103：新群聊会话创建通知（群组邀请）
+ * Message types (the type field):
+ * - 101: friend request received
+ * - 102: new session created
+ * - 103: new group session created (a group invitation)
  */
 @Data
 public class SystemNotificationMessage implements Serializable {
@@ -24,62 +24,62 @@ public class SystemNotificationMessage implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 消息唯一ID
-     * 格式：msg_{timestamp}_{snowflakeId}
-     * 用于消息追踪和去重
+     * Unique message id
+     * Format: msg_{timestamp}_{snowflakeId}
+     * Used for tracing and de-duplication
      */
     private String messageId;
 
     /**
-     * 会话ID（可为null）
-     * - 好友申请通知：null
-     * - 新会话通知：会话ID
-     * - 群组邀请通知：群组会话ID
+     * Session id (may be null)
+     * - friend request notification: null
+     * - new session notification: the session id
+     * - group invitation notification: the group session id
      */
     private Long sessionId;
 
     /**
-     * 发送者ID
-     * - 系统消息：0
-     * - 好友申请：申请人ID
-     * - 新建会话：新建会话人ID
-     * - 其他：根据业务场景设置
+     * Sender id
+     * - system message: 0
+     * - friend request: the requester's id
+     * - new session: the id of whoever created it
+     * - otherwise: whatever the use case calls for
      */
     private Long senderId;
 
     /**
-     * 接收者用户ID（需要接收通知的用户）
+     * Receiver's user id (the user this notification is for)
      */
     private Long receiverId;
 
     /**
-     * 消息类型
-     * 101: 收到好友申请
-     * 102: 新会话创建
-     * 103: 新群聊会话创建
+     * Message type
+     * 101: friend request received
+     * 102: new session created
+     * 103: new group session created
      */
     private Integer type;
 
     /**
-     * 会话类型（可为null）
-     * 0: 单聊
-     * 1: 群聊
-     * 2: 机器人
-     * null: 不适用于会话（如好友申请）
+     * Session type (may be null)
+     * 0: one-to-one
+     * 1: group
+     * 2: bot
+     * null: not tied to a session (a friend request, for example)
      */
     private Integer sessionType;
 
     /**
-     * 消息创建时间戳（毫秒）
+     * Message creation timestamp, in milliseconds
      */
     private Long timestamp;
 
     /**
-     * 消息体（业务数据）
-     * 不同类型的通知，body内容不同：
-     * - type=101: {nickname: "张三", avatar: "http://...", msg: "你好我是xxx"}
-     * - type=102: {sessionName: "张三", avatar: "http://..."}
-     * - type=103: {sessionName: "技术交流群", avatar: "http://...", creatorId: 123, membersCount: 5}
+     * Message body (the payload)
+     * The body differs per notification type:
+     * - type=101: {nickname: "Alice", avatar: "http://...", msg: "Hi, I'm xxx"}
+     * - type=102: {sessionName: "Alice", avatar: "http://..."}
+     * - type=103: {sessionName: "Engineering chat", avatar: "http://...", creatorId: 123, membersCount: 5}
      */
     private Map<String, Object> body;
 }

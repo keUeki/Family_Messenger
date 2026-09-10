@@ -6,7 +6,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 /**
- * 通用返回类
+ * Generic API response wrapper
  *
  */
 @Data

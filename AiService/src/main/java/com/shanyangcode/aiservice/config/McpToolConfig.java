@@ -21,7 +21,7 @@ public class McpToolConfig {
 
 
         McpTransport searchTransport = new HttpMcpTransport.Builder()
-                .sseUrl("https://open.bigmodel.cn/api/mcp/web_search/sse?Authorization=" + apiKey.trim()) // 去掉空格并 trim
+                .sseUrl("https://open.bigmodel.cn/api/mcp/web_search/sse?Authorization=" + apiKey.trim()) // strip surrounding whitespace
                 .build();
 
         McpClient searchClient = new DefaultMcpClient.Builder()

@@ -10,19 +10,19 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * 消息表 Mapper
+ * Message table mapper
  * <p>
- * 会话列表需要展示每个会话的最后一条消息，因此这里只提供读取能力，
- * 消息的写入依旧由 OfflineDataService 负责。
+ * The session list shows the last message of each session, so this mapper is read-only;
+ * writing messages remains the responsibility of OfflineDataService.
  */
 @Mapper
 public interface MessageMapper extends BaseMapper<Message> {
 
     /**
-     * 批量查询若干会话各自的最后一条消息
+     * Loads the last message of each of the given sessions in one query
      *
-     * @param sessionIds 会话 ID 集合，调用方需保证非空
-     * @return 每个会话最新的一条消息
+     * @param sessionIds the session ids; the caller must ensure this is not empty
+     * @return the most recent message of each session
      */
     @Select("""
             <script>

@@ -7,7 +7,7 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * 退出群聊请求DTO
+ * Leave-group request DTO
  */
 @Data
 public class GroupExitRequestDTO implements Serializable {
@@ -16,14 +16,14 @@ public class GroupExitRequestDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 会话ID
+     * Session id
      */
-    @NotNull(message = "会话ID不能为空")
+    @NotNull(message = "Session id must not be null")
     private Long sessionId;
 
     /**
-     * 退出群聊的用户ID
+     * Id of the user leaving the group
      */
-    @NotNull(message = "用户ID不能为空")
+    @NotNull(message = "User id must not be null")
     private Long userId;
 }

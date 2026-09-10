@@ -33,21 +33,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * 会话列表服务实现类
+ * Session list service implementation
  */
 @Slf4j
 @Service
 public class SessionSummaryServiceImpl implements SessionSummaryService {
 
     /**
-     * 图片消息在会话列表中的预览文案
+     * Preview text shown for an image message in the session list
      */
-    private static final String IMAGE_PREVIEW = "[图片]";
+    private static final String IMAGE_PREVIEW = "[Image]";
 
     /**
-     * 表情消息在会话列表中的预览文案
+     * Preview text shown for a sticker message in the session list
      */
-    private static final String EMOJI_PREVIEW = "[表情]";
+    private static final String EMOJI_PREVIEW = "[Sticker]";
 
     private final UserSessionMapper userSessionMapper;
     private final SessionMapper sessionMapper;
@@ -66,16 +66,16 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
 
     @Override
     public List<SessionSummaryDTO> getUserSessions(Long userId) {
-        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "User id must not be empty");
 
-        // 1. 查询用户参与的全部会话
+        // 1. Load every session the user belongs to
         List<Long> sessionIds = listJoinedSessionIds(userId);
         if (sessionIds.isEmpty()) {
-            log.info("用户没有任何会话，userId: {}", userId);
+            log.info("The user has no sessions, userId: {}", userId);
             return Collections.emptyList();
         }
 
-        // 2. 过滤出仍然正常的会话
+        // 2. Keep only the sessions that are still active
         LambdaQueryWrapper<Session> sessionWrapper = new LambdaQueryWrapper<>();
         sessionWrapper.in(Session::getSessionId, sessionIds)
                 .eq(Session::getStatus, UserSessionStatusEnum.NORMAL.getCode());
@@ -86,14 +86,14 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
 
         List<Long> validSessionIds = sessions.stream().map(Session::getSessionId).toList();
 
-        // 3. 单聊和 AI 会话需要展示对方的昵称与头像
+        // 3. One-to-one and AI sessions display the other party's nickname and avatar
         Map<Long, Long> peerMap = resolvePeerMap(userId, sessions);
         Map<Long, User> peerUserMap = loadUsers(peerMap.values());
 
-        // 4. 每个会话的最后一条消息
+        // 4. The last message of each session
         Map<Long, Message> latestMessageMap = loadLatestMessages(validSessionIds);
 
-        // 5. 组装并按最后活跃时间倒序
+        // 5. Assemble the rows, most recently active first
         List<SessionSummaryDTO> result = new ArrayList<>(sessions.size());
         for (Session session : sessions) {
             result.add(convert(session, peerMap.get(session.getSessionId()), peerUserMap,
@@ -102,14 +102,14 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
         result.sort(Comparator.comparing(SessionSummaryDTO::getLastMsgTime,
                 Comparator.nullsLast(Comparator.reverseOrder())));
 
-        log.info("查询用户会话列表成功，userId: {}, 会话数: {}", userId, result.size());
+        log.info("Session list loaded, userId: {}, sessions: {}", userId, result.size());
         return result;
     }
 
-    /* ===================== 私有方法 ===================== */
+    /* ===================== Private helpers ===================== */
 
     /**
-     * 查询用户加入的所有会话 ID
+     * Loads the ids of every session the user has joined
      */
     private List<Long> listJoinedSessionIds(Long userId) {
         LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
@@ -123,7 +123,7 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
     }
 
     /**
-     * 为单聊 / AI 会话找出对方的用户 ID，群聊不需要
+     * Resolves the other party's user id for one-to-one and AI sessions; group sessions need none
      */
     private Map<Long, Long> resolvePeerMap(Long userId, List<Session> sessions) {
         Set<Long> pairSessionIds = sessions.stream()
@@ -148,7 +148,7 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
     }
 
     /**
-     * 批量加载对方的用户资料
+     * Loads the other parties' user profiles in bulk
      */
     private Map<Long, User> loadUsers(Collection<Long> userIds) {
         if (userIds == null || userIds.isEmpty()) {
@@ -162,7 +162,7 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
     }
 
     /**
-     * 批量加载每个会话的最后一条消息
+     * Loads the last message of every session in bulk
      */
     private Map<Long, Message> loadLatestMessages(List<Long> sessionIds) {
         if (sessionIds.isEmpty()) {
@@ -177,14 +177,14 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
     }
 
     /**
-     * 组装单个会话列表项
+     * Assembles a single session list row
      */
     private SessionSummaryDTO convert(Session session, Long peerId,
                                       Map<Long, User> peerUserMap, Message latestMessage) {
         SessionSummaryDTO dto = new SessionSummaryDTO();
         dto.setSessionId(String.valueOf(session.getSessionId()));
         dto.setSessionType(session.getType());
-        // 未读数由前端结合离线消息计算，这里统一返回 0
+        // The client computes the unread count from the offline backlog, so always return 0 here
         dto.setCount(0);
 
         if (isGroup(session)) {
@@ -214,7 +214,7 @@ public class SessionSummaryServiceImpl implements SessionSummaryService {
     }
 
     /**
-     * 生成会话列表中展示的消息预览
+     * Builds the message preview shown in the session list
      */
     private String previewOf(Message message) {
         Integer type = message.getType();

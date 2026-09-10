@@ -34,10 +34,10 @@ public class UserSessionController {
     }
 
     /**
-     * 查询用户的会话列表（聊天页左侧列表）
+     * Returns the user's session list (the left-hand list on the chat page)
      *
-     * @param userId 用户 ID
-     * @return 会话列表，按最后一条消息时间倒序
+     * @param userId the user id
+     * @return the session list, newest last-message first
      */
     @GetMapping("/sessions")
     public BaseResponse<List<SessionSummaryDTO>> getUserSessions(@RequestParam("userId") Long userId) {

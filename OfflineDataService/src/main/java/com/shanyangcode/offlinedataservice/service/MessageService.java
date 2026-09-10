@@ -17,14 +17,14 @@ public interface MessageService extends IService<Message> {
     void saveMessageToMySQL(MessageRequest messageRequest);
 
     /**
-     * 获取离线消息
+     * Returns the offline messages
      *
-     * @return Map<sessionId, 消息列表>
+     * @return Map<sessionId, message list>
      */
     Map<Long, List<MessageResponse>> getOfflineMessages(OfflineMessageRequest request);
 
     /**
-     * 获取历史消息（冷热融合查询）
+     * Returns historical messages, merging the hot (Redis) and cold (MySQL) stores
      */
     List<MessageResponse> getHistoryMessages(HistoryMessageRequest request);
 

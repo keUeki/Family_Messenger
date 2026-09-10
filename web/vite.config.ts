@@ -5,10 +5,10 @@ import { fileURLToPath } from 'node:url'
 
 const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
-/** 网关地址：所有 /api/** 请求都经由网关转发到各个微服务。 */
+/** Gateway address: every /api/** request is forwarded through the gateway to the microservices. */
 const GATEWAY_TARGET = process.env.VITE_PROXY_GATEWAY ?? 'http://127.0.0.1:10010'
 
-/** Netty WebSocket 地址：与网关无关，前端直连 RealTimeService 的 Netty 端口。 */
+/** Netty WebSocket address: independent of the gateway; the client connects straight to RealTimeService's Netty port. */
 const NETTY_TARGET = process.env.VITE_PROXY_NETTY ?? 'ws://127.0.0.1:9101'
 
 export default defineConfig({
@@ -22,12 +22,12 @@ export default defineConfig({
     port: 5173,
     host: '127.0.0.1',
     proxy: {
-      // 开发环境下走 Vite 代理，浏览器视角是同源请求，因此不存在跨域与预检问题。
+      // In development everything goes through the Vite proxy, so the browser sees same-origin requests and there is no CORS or preflight to deal with.
       '/api': {
         target: GATEWAY_TARGET,
         changeOrigin: true,
       },
-      // WebSocket 握手同样经由代理，避免依赖后端下发的局域网 IP。
+      // The WebSocket handshake goes through the proxy too, so it does not depend on the LAN IP the backend hands out.
       '/ws/netty': {
         target: NETTY_TARGET,
         ws: true,

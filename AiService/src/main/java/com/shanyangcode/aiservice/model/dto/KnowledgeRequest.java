@@ -9,17 +9,17 @@ public class KnowledgeRequest implements Serializable {
 
 
     /**
-     * 问题，例如：这个软件叫什么名字？
+     * The question, for example: What is this software called?
      */
     private String question;
 
     /**
-     * 答案，例如：本软件名为「千言」...
+     * The answer, for example: This software is called Qianyan...
      */
     private String answer;
 
     /**
-     * (可选) 来源名称，用于模拟 file_name
+     * (Optional) source name, used to stand in for file_name
      */
     private String sourceName;
 

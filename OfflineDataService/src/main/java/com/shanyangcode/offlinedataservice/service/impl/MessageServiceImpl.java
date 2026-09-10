@@ -56,7 +56,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     private UserServiceClient userServiceClient;
 
 
-    // ==================== 离线消息查询 ====================
+    // ==================== Offline message queries ====================
 
     @Override
     public Map<Long, List<MessageResponse>> getOfflineMessages(OfflineMessageRequest request) {
@@ -67,13 +67,13 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             return Collections.emptyMap();
         }
 
-        // 1. 获取用户的所有会话
+        // 1. Load every session the user belongs to
         List<Long> sessionIds = userServiceClient.getSessionIdsByUserId(userId);
         if (sessionIds == null || sessionIds.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        // 2. 遍历每个会话，获取离线后的消息
+        // 2. For each session, collect the messages sent since the user went offline
         Map<Long, List<MessageResponse>> result = new HashMap<>();
         long hotBoundary = System.currentTimeMillis() - CommonConstant.SEVEN_DAYS_MILLIS;
 
@@ -84,43 +84,43 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             }
         }
 
-        log.info("用户 {} 离线消息查询完成，共 {} 个会话有新消息", userId, result.size());
+        log.info("Offline message lookup finished for user {}; {} session(s) have new messages", userId, result.size());
         return result;
     }
 
     /**
-     * 获取指定时间之后的消息（离线消息）
+     * Returns the messages sent after the given time (the offline backlog)
      */
     private List<MessageResponse> getMessagesAfter(Long sessionId, long afterTime, long hotBoundary) {
         List<MessageResponse> result = new ArrayList<>();
 
-        // 1. 查 Redis（热数据）
+        // 1. Query Redis (hot data)
         if (afterTime >= hotBoundary) {
-            // 离线时间在热数据范围内，直接查 Redis
+            // The offline point falls inside the hot window, so Redis alone is enough
             List<MessageResponse> redisMessages = getMessagesFromRedisAfter(sessionId, afterTime);
             result.addAll(redisMessages);
         } else {
-            // 离线时间在冷数据范围，需要同时查 Redis 和 MySQL
-            // 先查 Redis 全部热数据
+            // The offline point falls into cold storage, so query both Redis and MySQL
+            // First read all of the hot data from Redis
             List<MessageResponse> redisMessages = getMessagesFromRedisAfter(sessionId, hotBoundary);
             result.addAll(redisMessages);
 
-            // 再查 MySQL 冷数据
+            // Then read the cold data from MySQL
             List<MessageResponse> mysqlMessages = getMessagesFromMySQLAfter(sessionId, afterTime, hotBoundary);
             result.addAll(mysqlMessages);
         }
 
-        // 按时间正序（旧消息在前）
+        // Sort ascending by time (oldest first)
         result.sort(Comparator.comparing(MessageResponse::getCreatedTime));
         return result;
     }
 
     /**
-     * 从 Redis 获取指定时间之后的消息
+     * Reads the messages sent after the given time from Redis
      */
     private List<MessageResponse> getMessagesFromRedisAfter(Long sessionId, long afterTime) {
         String key = CommonConstant.SESSION_KEY_REDIS + sessionId;
-        // (afterTime, +inf] 开区间，不包含 afterTime 这一刻的消息
+        // (afterTime, +inf] — exclusive, so a message sent exactly at afterTime is skipped
         Set<String> messageJsonSet = stringRedisTemplate.opsForZSet()
                 .rangeByScore(key, afterTime + 1, Double.MAX_VALUE);
 
@@ -136,7 +136,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
 
-    // ==================== 数据转换 ====================
+    // ==================== Conversions ====================
 
     private List<MessageResponse> convertToResponses(List<Message> messages) {
         if (messages == null || messages.isEmpty()) {
@@ -151,7 +151,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             response.setSenderId(msg.getSenderId());
             response.setType(msg.getType());
             response.setSessionType(msg.getSessionType());
-            // MySQL 的 Date 转时间戳字符串，保持和 Redis 数据格式一致
+            // Convert the MySQL Date to a timestamp string so it matches the Redis format
             response.setCreatedTime(String.valueOf(msg.getCreatedTime().getTime()));
 
             MessageBody body = new MessageBody();
@@ -178,33 +178,33 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
 
         List<MessageResponse> result = new ArrayList<>();
 
-        // 1. 如果 beforeTime 在热数据范围内，先查 Redis
+        // 1. If beforeTime falls inside the hot window, start with Redis
         if (beforeTime > hotBoundary) {
             List<MessageResponse> redisMessages = getMessagesFromRedisBefore(sessionId, beforeTime, limit);
             result.addAll(redisMessages);
         }
 
-        // 2. Redis 不够，再查 MySQL
+        // 2. If Redis did not return enough rows, fall back to MySQL
         if (result.size() < limit) {
             int remaining = limit - result.size();
-            // MySQL 查询的 beforeTime：取 Redis 最早消息的时间，或者原始 beforeTime
+            // beforeTime for the MySQL query: the oldest Redis message's time, or the original beforeTime
             long mysqlBeforeTime = beforeTime > hotBoundary ? hotBoundary : beforeTime;
 
             List<MessageResponse> mysqlMessages = getMessagesFromMySQLBefore(sessionId, mysqlBeforeTime, remaining);
             result.addAll(mysqlMessages);
         }
 
-        // 按时间倒序（新消息在前，符合往上翻页的习惯）
+        // Sort descending by time (newest first, which is what scrolling back expects)
         result.sort(Comparator.comparing(MessageResponse::getCreatedTime).reversed());
         return result;
     }
 
     /**
-     * 从 Redis 获取指定时间之前的消息
+     * Reads the messages sent before the given time from Redis
      */
     private List<MessageResponse> getMessagesFromRedisBefore(Long sessionId, long beforeTime, int limit) {
         String key = CommonConstant.SESSION_KEY_REDIS + sessionId;
-        // [0, beforeTime) 左闭右开
+        // [0, beforeTime) — inclusive lower bound, exclusive upper bound
         Set<String> messageJsonSet = stringRedisTemplate.opsForZSet()
                 .reverseRangeByScore(key, 0, beforeTime - 1, 0, limit);
 
@@ -220,7 +220,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     /**
-     * 从 MySQL 获取指定时间之前的消息
+     * Reads the messages sent before the given time from MySQL
      */
     private List<MessageResponse> getMessagesFromMySQLBefore(Long sessionId, long beforeTime, int limit) {
         QueryWrapper<Message> queryWrapper = new QueryWrapper<>();
@@ -234,7 +234,7 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     }
 
     /**
-     * 从 MySQL 获取冷数据区间的离线消息
+     * Reads the offline backlog that falls into the cold-storage window from MySQL
      */
     private List<MessageResponse> getMessagesFromMySQLAfter(Long sessionId, long afterTime, long beforeTime) {
         QueryWrapper<Message> queryWrapper = new QueryWrapper<>();
@@ -260,11 +260,11 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
     public String historyChatLog(Long sessionId, Integer hours) {
         Map<Long, String> userNickName = userServiceClient.getUserNickName(sessionId);
 
-        // 获取当前上海时间
+        // Current time in the Asia/Shanghai zone
         ZoneId shanghai = ZoneId.of("Asia/Shanghai");
         LocalDateTime nowShanghai = LocalDateTime.now(shanghai);
         LocalDateTime threshold = nowShanghai.minusHours(hours);
-        // 格式化为 yyyy-MM-dd HH:mm:ss 字符串
+        // Format as a yyyy-MM-dd HH:mm:ss string
         String timeThresholdStr = threshold.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
         QueryWrapper<Message> queryWrapper = new QueryWrapper<>();
@@ -277,14 +277,14 @@ public class MessageServiceImpl extends ServiceImpl<MessageMapper, Message> impl
             Long senderId = message.getSenderId();
             String senderName = userNickName.get(senderId);
             String timeStr = FormatDateUtil.formatDate(message.getCreatedTime());
-            chatLog.append("[").append(senderName).append("] ").append(timeStr).append("：").append(message.getContent()).append("\n");
+            chatLog.append("[").append(senderName).append("] ").append(timeStr).append(": ").append(message.getContent()).append("\n");
         }
-        String result = "没有消息";
+        String result = "No messages";
 
         try {
             result = aiServiceClient.chatSummary(chatLog.toString().trim());
         } catch (Exception e) {
-            throw new RuntimeException("调用会话总结失败");
+            throw new RuntimeException("The session summary call failed");
         }
 
         return result;

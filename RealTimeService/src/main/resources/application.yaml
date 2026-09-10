@@ -14,25 +14,25 @@ spring:
       password: ${REDIS_PASSWORD}
       timeout: 30000
   kafka:
-    bootstrap-servers: localhost:9092  # Kafka 服务地址，多个用逗号分隔
+    bootstrap-servers: localhost:9092  # Kafka bootstrap servers; separate multiple entries with commas
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
       retries: 3
     consumer:
-      group-id: infinite-chat-push-group                # 消费者组 ID
+      group-id: infinite-chat-push-group                # Consumer group id
       auto-offset-reset: earliest       # earliest / latest / none
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      enable-auto-commit: true          # 是否自动提交 offset
-      auto-commit-interval: 1000        # 自动提交间隔（毫秒）
+      enable-auto-commit: true          # Whether offsets are committed automatically
+      auto-commit-interval: 1000        # Auto-commit interval in milliseconds
   cloud:
     nacos:
       discovery:
         server-addr: localhost:18375
         metadata:
-          # Netty WebSocket 实际监听端口，供 UserService 下发 nettyUri 时使用
+          # Port the Netty WebSocket actually listens on; UserService hands it out as nettyUri
           netty-port: ${netty.port}
 
 
@@ -40,7 +40,7 @@ spring:
 server:
   port: 8102
 
-# Netty WebSocket 服务端口（与 Spring Boot 的 server.port 相互独立）
+# Netty WebSocket server port (independent of Spring Boot's server.port)
 netty:
   port: 9101
 

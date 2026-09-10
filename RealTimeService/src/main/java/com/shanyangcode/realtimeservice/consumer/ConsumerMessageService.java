@@ -40,11 +40,11 @@ public class ConsumerMessageService {
 
     @KafkaListener(topics = CommonConstant.KAFKA_MESSAGE_TOPIC_PUSH, groupId = "infinite-chat-push-group-0")
     public void consume(String message) {
-        System.out.println("收到消息：" + message);
+        System.out.println("Message received: " + message);
         MessageRequest messageRequest = JSONUtil.toBean(message, MessageRequest.class);
-        System.out.println("收到消息：" + messageRequest);
+        System.out.println("Message received: " + messageRequest);
         if (messageRequest.getSessionType() == null) {
-            log.error("消息缺少 sessionType，无法路由，丢弃消息: {}", message);
+            log.error("Message has no sessionType, cannot be routed, dropping it: {}", message);
             return;
         }
         if (messageRequest.getSessionType() == SessionTypeConstant.SIGNAL_TYPE) {
@@ -59,7 +59,7 @@ public class ConsumerMessageService {
     public void aiSignalMessage(MessageRequest messageRequest) {
         MessageResponse messageResponse = createMessageResponse(messageRequest);
         messageResponse.setMessageId(SnowflakeDynamicUtil.nextId());
-        // 获取 AI 回复
+        // Fetch the AI reply
         ChatRequest chatRequest = new ChatRequest();
         chatRequest.setPrompt(messageRequest.getBody().getContent());
         chatRequest.setSessionId(messageRequest.getSessionId());
@@ -77,12 +77,12 @@ public class ConsumerMessageService {
 
         kafkaTemplate.send(CommonConstant.KAFKA_MESSAGE_TOPIC_STORE, JSONUtil.toJsonStr(messageRequest)).whenComplete((success, failure) -> {
             if (failure != null) {
-                // 生产者生产失败
-                System.err.println("生产者生产失败: " + failure.getMessage());
-                // 记录日志、告警、补偿等
+                // Producer failed to publish
+                System.err.println("Producer failed to publish: " + failure.getMessage());
+                // Log, alert, compensate, and so on
             } else {
-                // 生产者生产成功
-                System.out.println("生产者生产成功，offset: " + success.getRecordMetadata().offset());
+                // Producer published successfully
+                System.out.println("Producer published successfully, offset: " + success.getRecordMetadata().offset());
             }
         });
     }
@@ -112,7 +112,7 @@ public class ConsumerMessageService {
 
     public void pushMessageToUser(MessageResponse messageResponse, Long receiverId) {
         if (receiverId == null) {
-            log.warn("接收者为空，跳过推送: {}", messageResponse);
+            log.warn("Receiver is empty, skipping push: {}", messageResponse);
             return;
         }
         Channel channel = ChannelManager.getChannelByUserId(receiverId.toString());
@@ -120,13 +120,13 @@ public class ConsumerMessageService {
             TextWebSocketFrame frame = new TextWebSocketFrame(JSONUtil.toJsonStr(messageResponse));
             channel.writeAndFlush(frame).addListener((ChannelFutureListener) future -> {
                 if (future.isSuccess()) {
-                    log.info("消息发送成功: {}", messageResponse);
+                    log.info("Message delivered: {}", messageResponse);
                 } else {
-                    log.info("消息发送失败: {}", future.cause() != null ? future.cause().getMessage() : "未知错误");
+                    log.info("Message delivery failed: {}", future.cause() != null ? future.cause().getMessage() : "unknown error");
                 }
             });
         } else {
-            log.info("channel 不存在或已关闭，接收者: {}", receiverId);
+            log.info("Channel is missing or already closed, receiver: {}", receiverId);
         }
     }
 

@@ -86,15 +86,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
         String email = userRegisterRequest.getEmail();
         String code = userRegisterRequest.getCode();
-        // 验证验证码是否正确
+        // Check that the verification code is correct
         String redisCode = stringRedisTemplate.opsForValue().get(email);
         ThrowUtils.throwIf(StringUtils.isBlank(redisCode) || !code.equals(redisCode), ErrorCode.LOGIN_ERROR_CODE);
 
-        // 验证用户账号是否已经存在
+        // Check whether the account already exists
         ThrowUtils.throwIf(getUser(email) != null, ErrorCode.USER_ALREADY_EXISTS);
 
 
-        // 验证密码是否相同
+        // Check that the two passwords match
         ThrowUtils.throwIf(!userRegisterRequest.getPassword().equals(userRegisterRequest.getConfirmPassword()), ErrorCode.LOGIN_ERROR);
 
 
@@ -127,16 +127,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         ThrowUtils.throwIf(!sessionService.save(session), ErrorCode.SYSTEM_ERROR);
 
 
-        // 创建用户会话（普通用户）
+        // Create the user session (a regular user)
         UserSession userSessionUser = createUserSession(userId, sessionId, CommonConstant.USER_ROLE_NORMAL, CommonConstant.SESSION_STATUS);
 
-        // 创建 AI 会话
+        // Create the AI session
         UserSession userSessionAI = createUserSession(CommonConstant.AI_ID, sessionId, CommonConstant.USER_ROLE_NORMAL, CommonConstant.SESSION_STATUS);
 
-        // 放入列表
+        // Add it to the list
         List<UserSession> sessionList = Arrays.asList(userSessionUser, userSessionAI);
 
-        // 批量保存
+        // Save them in one batch
         ThrowUtils.throwIf(!userSessionService.saveBatch(sessionList), ErrorCode.SYSTEM_ERROR);
 
         stringRedisTemplate.delete(email);
@@ -177,7 +177,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String redisCode = stringRedisTemplate.opsForValue().get(email);
         ThrowUtils.throwIf(StringUtils.isBlank(redisCode) || !code.equals(redisCode),ErrorCode.LOGIN_ERROR_CODE);
 
-        // 删除 redis 保存的验证码
+        // Delete the verification code held in Redis
         stringRedisTemplate.delete(email);
 
         User user = getUser(email);
@@ -218,11 +218,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String key = CommonConstant.OFFLINE_KEY_REDIS + userId;
         String value = stringRedisTemplate.opsForValue().getAndDelete(key);
         if (StringUtils.isNotBlank(value)) {
-            log.info("用户 {} 上线，离线时间: {}", userId, value);
+            log.info("User {} came online, offline since: {}", userId, value);
             return Long.parseLong(value);
         }
-        // 新用户或首次登录，没有离线记录
-        log.debug("用户 {} 无离线时间记录", userId);
+        // A new user, or a first login, so there is no offline record
+        log.debug("User {} has no recorded offline time", userId);
         return null;
     }
 
@@ -236,24 +236,24 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public TokenResponse refreshToken(String refreshToken) {
-        // 1. 解析传入的 Refresh Token
+        // 1. Parse the supplied refresh token
         Claims claims = JwtUtil.parse(refreshToken);
-        ThrowUtils.throwIf(claims == null, ErrorCode.TOKEN_INVALID, "凭证已失效，请重新登录");
+        ThrowUtils.throwIf(claims == null, ErrorCode.TOKEN_INVALID, "Your credentials are no longer valid, please log in again");
 
 
-        // 2. 从载荷中安全获取 userId
+        // 2. Safely read the userId out of the payload
         String userId = claims.getSubject();
 
-        // 3. 校验 Redis，防止 Token 撤销攻击（实现单设备登录的关键）
+        // 3. Check Redis to defeat token-revocation attacks; this is what makes single-device login work
         String redisRefreshToken = stringRedisTemplate.opsForValue().get(CommonConstant.REFRESH_TOKEN_PREFIX + userId);
-        ThrowUtils.throwIf(!refreshToken.equals(redisRefreshToken), ErrorCode.TOKEN_INVALID, "凭证已过期或在其他地方登录");
+        ThrowUtils.throwIf(!refreshToken.equals(redisRefreshToken), ErrorCode.TOKEN_INVALID, "Your credentials have expired, or you logged in elsewhere");
 
 
-        // 4. 生成新的一对 Token
+        // 4. Issue a fresh token pair
         String newAccessToken = JwtUtil.generate(userId, CommonConstant.ACCESS_TOKEN_EXPIRE_TIME, CommonConstant.ACCESS_TOKEN_UNIT);
         String newRefreshToken = JwtUtil.generate(userId, CommonConstant.REFRESH_TOKEN_EXPIRE_TIME, CommonConstant.REFRESH_TOKEN_UNIT);
 
-        // 5. 更新 Redis
+        // 5. Update Redis
         stringRedisTemplate.opsForValue().set(CommonConstant.ACCESS_TOKEN_PREFIX + userId, newAccessToken, CommonConstant.ACCESS_TOKEN_EXPIRE_TIME, CommonConstant.ACCESS_TOKEN_UNIT);
         stringRedisTemplate.opsForValue().set(CommonConstant.REFRESH_TOKEN_PREFIX + userId, newRefreshToken, CommonConstant.REFRESH_TOKEN_EXPIRE_TIME, CommonConstant.REFRESH_TOKEN_UNIT);
         return TokenResponse.builder().accessToken(newAccessToken).refreshToken(newRefreshToken).build();
@@ -296,7 +296,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
 
     @Override
     public UserInfoResponse getUserInfo(Long userId) {
-        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "User id must not be empty");
 
         User user = this.getById(userId);
         ThrowUtils.throwIf(user == null, ErrorCode.USER_NOT_EXISTS);
@@ -316,29 +316,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         String email = updatePasswordRequest.getEmail();
         String code = updatePasswordRequest.getCode();
 
-        // 1. 校验验证码
+        // 1. Check the verification code
         String redisCode = stringRedisTemplate.opsForValue().get(email);
         ThrowUtils.throwIf(StringUtils.isBlank(redisCode) || !code.equals(redisCode), ErrorCode.LOGIN_ERROR_CODE);
 
-        // 2. 校验两次密码是否一致
+        // 2. Check that the two passwords match
         ThrowUtils.throwIf(!updatePasswordRequest.getPassword().equals(updatePasswordRequest.getConfirmPassword()),
                 ErrorCode.LoginPasswordError);
 
-        // 3. 校验用户是否存在
+        // 3. Check that the user exists
         User user = getUser(email);
         ThrowUtils.throwIf(user == null, ErrorCode.USER_NOT_EXISTS);
 
-        // 4. 更新密码
+        // 4. Update the password
         String encryptedPassword = DigestUtils.md5DigestAsHex(
                 (UserConstant.PASSWORD_SALT + updatePasswordRequest.getPassword()).getBytes());
         user.setPassword(encryptedPassword);
         boolean updated = this.updateById(user);
         ThrowUtils.throwIf(!updated, ErrorCode.SYSTEM_ERROR);
 
-        // 5. 验证码一次性使用，并且密码变更后强制重新登录
+        // 5. The code is single-use, and changing the password forces a fresh login
         stringRedisTemplate.delete(email);
         logout(String.valueOf(user.getUserId()));
-        log.info("用户 {} 修改密码成功，已清理登录态", user.getUserId());
+        log.info("User {} changed their password; the login state has been cleared", user.getUserId());
         return true;
     }
 }

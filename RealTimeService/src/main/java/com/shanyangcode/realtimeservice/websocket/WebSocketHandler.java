@@ -31,17 +31,17 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
         Channel channel = channelHandlerContext.channel();
         String msg = textWebSocketFrame.text();
 
-        log.debug("Received from {}: {}", channel.id(), msg); // info → debug，避免日志刷屏
+        log.debug("Received from {}: {}", channel.id(), msg); // info -> debug, to keep the log from flooding
 
         try {
             if (WebSocketConstant.HEARTBEAT_PING.equals(msg)) {
-                // 心跳响应
+                // Heartbeat response
                 if (channel.isActive()) {
                     log.debug("Received heartbeat ping from {}", channel.id());
                     channel.writeAndFlush(new TextWebSocketFrame(WebSocketConstant.HEARTBEAT_PONG));
                 }
             } else {
-                // 业务消息
+                // Business message
                 if (channel.isActive()) {
                     sendMessageKafka(msg, channel);
                 } else {
@@ -54,7 +54,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
 //            if (channel.isActive()) {
 //                sendSystemErrorToClient(channel, msg, e);
 //            }
-            // 即使发错失败，也应清理连接（防僵尸连接）
+            // Clean up the connection even when the send fails, to avoid zombie connections
             clearChannel(channel);
             channelHandlerContext.close();
         }
@@ -101,18 +101,18 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
 
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
-        // 处理心跳
+        // Handle the heartbeat
         if (evt instanceof IdleStateEvent event) {
             switch (event.state()) {
                 case READER_IDLE:
-                    log.error("读空闲超时");
+                    log.error("Read idle timeout");
                     clearChannel(ctx.channel());
                     ctx.close();
                     break;
                 case WRITER_IDLE:
-                    log.error("写空闲超时");
+                    log.error("Write idle timeout");
                 case ALL_IDLE:
-                    log.error("读写空闲超时");
+                    log.error("Read/write idle timeout");
             }
         }
     }
@@ -120,7 +120,7 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
 
     public void clearChannel(Channel channel) {
         if (channel == null) {
-            return; // 幂等性兜底
+            return; // idempotency guard
         }
         System.out.println("clearChannel: " + channel.id());
 
@@ -146,49 +146,49 @@ public class WebSocketHandler extends SimpleChannelInboundHandler<TextWebSocketF
 
 
     /**
-     * 记录用户离线时间到 Redis
+     * Records the user's offline timestamp in Redis
      * <p>
      * Key: user:{userId}:offline
-     * Value: 时间戳
+     * Value: the timestamp
      */
     private void saveOfflineTime(String userId) {
         String key = CommonConstant.OFFLINE_KEY_REDIS + userId;
         String timestamp = String.valueOf(System.currentTimeMillis());
         stringRedisTemplate.opsForValue().set(key, timestamp);
-        log.debug("记录用户离线时间: userId={}, timestamp={}", userId, timestamp);
+        log.debug("Recorded the user's offline time: userId={}, timestamp={}", userId, timestamp);
     }
 
     public void sendMessageKafka(String message, Channel channel) {
-        // 转成消息体
+        // Convert to the message body
         MessageRequest messageRequest = JSONUtil.toBean(message, MessageRequest.class);
         messageRequest.setMessageId(SnowflakeDynamicUtil.nextId());
         messageRequest.setCreatedTime(new Date());
 
 
-        // todo 校验鉴权
+        // todo verify authorisation
 
 
-        // 消息存储, 存储只存储一次，避免重复消费
+        // Persist the message exactly once to avoid duplicate consumption
         kafkaTemplate.send(CommonConstant.KAFKA_MESSAGE_TOPIC_STORE, JSONUtil.toJsonStr(messageRequest)).whenComplete((success, failure) -> {
             if (failure != null) {
-                // 生产者生产失败
-                System.err.println("生产者生产失败: " + failure.getMessage());
-                // 记录日志、告警、补偿等
+                // Producer failed to publish
+                System.err.println("Producer failed to publish: " + failure.getMessage());
+                // Log, alert, compensate, and so on
             } else {
-                // 生产者生产成功
-                System.out.println("生产者生产成功，offset: " + success.getRecordMetadata().offset());
+                // Producer published successfully
+                System.out.println("Producer published successfully, offset: " + success.getRecordMetadata().offset());
             }
         });
 
-        // 消息推送消息
+        // Push the message downstream
         kafkaTemplate.send(CommonConstant.KAFKA_MESSAGE_TOPIC_PUSH, messageRequest.getSessionId().toString(), JSONUtil.toJsonStr(messageRequest)).whenComplete((success, failure) -> {
             if (failure != null) {
-                // 生产者生产失败
-                System.err.println("生产者生产失败: " + failure.getMessage());
-                // 记录日志、告警、补偿等
+                // Producer failed to publish
+                System.err.println("Producer failed to publish: " + failure.getMessage());
+                // Log, alert, compensate, and so on
             } else {
-                // 生产者生产成功
-                System.out.println("生产者生产成功消息推送，offset: " + success.getRecordMetadata().offset());
+                // Producer published successfully
+                System.out.println("Producer published the push message successfully, offset: " + success.getRecordMetadata().offset());
             }
         });
     }

@@ -66,30 +66,30 @@ public class AiChatController {
 
     @PostMapping("/insert")
     public String insertKnowledge(@RequestBody KnowledgeRequest knowledgeRequest) {
-        // 1. 格式化内容
-        String formattedContent = String.format("### Q：%s\n\nA：%s", knowledgeRequest.getQuestion(), knowledgeRequest.getAnswer());
+        // 1. Format the entry
+        String formattedContent = String.format("### Q: %s\n\nA: %s", knowledgeRequest.getQuestion(), knowledgeRequest.getAnswer());
 
-        // 2. 写入物理文件 (InfiniteChat.md)
+        // 2. Append it to the file on disk (InfiniteChat.md)
         boolean writeSuccess = appendToFile(formattedContent, knowledgeRequest.getSourceName());
         if (!writeSuccess) {
-            return "插入失败：无法写入本地文件";
+            return "Insert failed: could not write to the local file";
         }
 
-        // 3. 存入向量数据库 (RAG)
+        // 3. Store it in the vector database (RAG)
         try {
-            // 设置来源元数据
+            // Set the source metadata
             String sourceName = (knowledgeRequest.getSourceName() != null) ? knowledgeRequest.getSourceName() : TARGET_FILENAME;
             Metadata metadata = Metadata.from("file_name", sourceName);
 
-            // 创建文档并 Embedding
+            // Build the document and embed it
             Document document = Document.from(formattedContent, metadata);
             embeddingStoreIngestor.ingest(document);
 
-            log.info("RAG - 新增知识点成功: {}", knowledgeRequest.getQuestion());
-            return "插入成功：已同步至 " + knowledgeRequest.getSourceName() + " 及向量数据库";
+            log.info("RAG - knowledge entry added: {}", knowledgeRequest.getQuestion());
+            return "Insert succeeded: synchronised to " + knowledgeRequest.getSourceName() + " and the vector database";
         } catch (Exception e) {
-            log.error("RAG - 向量化失败", e);
-            return "插入部分成功：文件已写入，但向量库更新失败";
+            log.error("RAG - embedding failed", e);
+            return "Insert partially succeeded: the file was written, but the vector store update failed";
         }
     }
 
@@ -97,19 +97,19 @@ public class AiChatController {
 
     private synchronized boolean appendToFile(String content, String sourceName) {
         try {
-            // 拼接完整路径
+            // Build the full path
             Path filePath = Paths.get(docsPath, sourceName);
-            log.info("文件实际写入位置: {}", filePath.toAbsolutePath());
-            // 如果文件不存在，先创建
+            log.info("File written to: {}", filePath.toAbsolutePath());
+            // Create the file first if it does not exist
             if (!Files.exists(filePath)) {
                 Files.createDirectories(filePath.getParent());
                 Files.createFile(filePath);
             }
 
-            // 准备要写入的文本，前后加换行符确保格式独立
+            // Wrap the text in newlines so the entry stays visually separate
             String textToAppend = "\n\n" + content;
 
-            // 执行追加写入
+            // Append it
             Files.writeString(
                     filePath,
                     textToAppend,
@@ -118,7 +118,7 @@ public class AiChatController {
             );
             return true;
         } catch (IOException e) {
-            log.error("RAG - 写入本地文件失败: {}", e.getMessage(), e);
+            log.error("RAG - failed to write the local file: {}", e.getMessage(), e);
             return false;
         }
     }

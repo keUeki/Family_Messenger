@@ -1,9 +1,9 @@
 
 
-### Q：千言智能助手项目第四课是什么时候录制的
+### Q: When was lesson 4 of the Qianyan smart assistant project recorded?
 
-A：2026-1-26
+A: 2026-1-26
 
-### Q：千言智能助手项目第六课是什么时候录制的
+### Q: When was lesson 6 of the Qianyan smart assistant project recorded?
 
-A：2026-1-30
+A: 2026-1-30

@@ -1,7 +1,7 @@
 package com.shanyangcode.common.constant;
 
 /**
- * 雪花 ID 生成常量
+ * Snowflake ID generation constants
  */
 public class SnowflakeConstant {
 

@@ -39,7 +39,7 @@ test('round-trips a WebSocket message without changing IDs', () => {
     senderId: snowflake,
     receiverId: '123',
     type: 0,
-    body: { content: '联调消息' },
+    body: { content: 'Integration test message' },
   })
   const parsed = parseLosslessJson(serialized)
 

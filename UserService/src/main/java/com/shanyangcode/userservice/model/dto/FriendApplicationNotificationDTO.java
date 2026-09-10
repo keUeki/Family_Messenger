@@ -5,9 +5,9 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 好友申请通知DTO
+ * Friend request notification DTO
  *
- * 场景：用户A向用户B发送好友申请，通知用户B
+ * Scenario: user A sends user B a friend request, and user B is notified
  */
 @Data
 public class FriendApplicationNotificationDTO implements Serializable {
@@ -15,22 +15,22 @@ public class FriendApplicationNotificationDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 申请者用户昵称
+     * Requester's nickname
      */
     private String applyUserName;
 
     /**
-     * 申请者用户ID
+     * Requester's user id
      */
     private Long applyUserId;
 
     /**
-     * 申请附言（用于推送通知）
+     * Message attached to the request (shown in the push notification)
      */
     private String message;
 
     /**
-     * 申请者头像URL
+     * Requester's avatar URL
      */
     private String applyFriendAvatar;
 }

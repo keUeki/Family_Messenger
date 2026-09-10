@@ -26,12 +26,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 联系人Controller
+ * Contacts controller
  * <p>
- * 功能说明：
- * - 提供好友相关的REST API接口
- * - 包含好友申请、好友管理、好友查询等功能
- * - 支持分页查询和关键字搜索
+ * Responsibilities:
+ * - Exposes the REST API for friends
+ * - Covers friend requests, friend management and friend lookups
+ * - Supports paginated queries and keyword search
  */
 @Slf4j
 @RestController
@@ -46,11 +46,11 @@ public class ContactController {
     }
 
 /**
- * 搜索用户（手机号或邮箱）
+ * Searches for a user by phone number or email address
  *
- * @param userId  用户ID
- * @param keyword 搜索关键字（手机号或邮箱）
- * @return 用户详情
+ * @param userId  the user id
+ * @param keyword the search term (phone number or email address)
+ * @return the user's details
  */
     @GetMapping("/{userId}/user/search")
     public BaseResponse<?> searchUser(
@@ -60,21 +60,21 @@ public class ContactController {
             FriendDetailVO friendDetail = friendService.searchUserByKeyword(userId, keyword);
             return ResultUtils.success(friendDetail);
         } catch (BusinessException e) {
-            log.error("搜索用户失败，用户ID：{}，关键字：{}，原因：{}", userId, keyword, e.getMessage());
+            log.error("User search failed, user id: {}, keyword: {}, cause: {}", userId, keyword, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("搜索用户失败，用户ID：{}，关键字：{}，原因：{}", userId, keyword, e.getMessage(), e);
+            log.error("User search failed, user id: {}, keyword: {}, cause: {}", userId, keyword, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 获取联系人列表
+     * Returns the contact list
      *
-     * @param userId      用户ID
-     * @param pageRequest 分页参数
-     * @param key         查询关键字
-     * @return 联系人列表（分页）
+     * @param userId      the user id
+     * @param pageRequest the pagination parameters
+     * @param key         the search term
+     * @return the paginated contact list
      */
     @GetMapping("/{userId}/friend")
     public BaseResponse<?> getFriends(
@@ -82,27 +82,27 @@ public class ContactController {
             PageRequest pageRequest,
             @RequestParam(value = "key", defaultValue = "") String key) {
         try {
-            // 查询分页数据
+            // Run the paginated query
             IPage<FriendDTO> friendsPage = friendService.getFriends(userId, pageRequest, key);
 
-            // 使用 PageResponse 统一返回格式
+            // Wrap it in PageResponse for a consistent shape
             return ResultUtils.success(PageResponse.of(friendsPage));
         } catch (BusinessException e) {
-            log.error("获取好友列表失败，用户ID：{}，原因：{}", userId, e.getMessage());
+            log.error("Failed to load the friend list, user id: {}, cause: {}", userId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("获取好友列表失败，用户ID：{}，原因：{}", userId, e.getMessage(), e);
+            log.error("Failed to load the friend list, user id: {}, cause: {}", userId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 发送好友申请
+     * Sends a friend request
      *
-     * @param userId        发送者用户ID
-     * @param receiveuserId 接收者用户ID
-     * @param request         申请信息
-     * @return 是否成功
+     * @param userId        the sender's user id
+     * @param receiveuserId the receiver's user id
+     * @param request       the request payload
+     * @return whether the operation succeeded
      */
     @PostMapping("/{userId}/friend/{receiveuserId}")
     public BaseResponse<?> sendFriendRequest(
@@ -115,25 +115,25 @@ public class ContactController {
             Long applyFriendId = applyFriendService.sendFriendRequest(senderId, receiverId, request.getMsg());
             return ResultUtils.success(applyFriendId != null);
         } catch (NumberFormatException e) {
-            log.error("发送好友申请失败，用户ID格式错误，发送者：{}，接收者：{}", userId, receiveuserId);
-            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "用户ID格式错误");
+            log.error("Failed to send the friend request, malformed user id, sender: {}, receiver: {}", userId, receiveuserId);
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "Malformed user id");
         } catch (BusinessException e) {
-            log.error("发送好友申请失败，发送者：{}，接收者：{}，原因：{}", userId, receiveuserId, e.getMessage());
+            log.error("Failed to send the friend request, sender: {}, receiver: {}, cause: {}", userId, receiveuserId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("发送好友申请失败，发送者：{}，接收者：{}，原因：{}", userId, receiveuserId, e.getMessage(), e);
+            log.error("Failed to send the friend request, sender: {}, receiver: {}, cause: {}", userId, receiveuserId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 获取好友申请列表
+     * Returns the friend request list
      * <p>
-     * 同时返回"我发出的"和"我收到的"申请，由 isReceiver 字段区分。
+     * Returns both the requests I sent and the ones I received; isReceiver tells them apart.
      *
-     * @param userId      用户ID
-     * @param pageRequest 分页参数
-     * @return 申请列表（分页）
+     * @param userId      the user id
+     * @param pageRequest the pagination parameters
+     * @return the paginated request list
      */
     @GetMapping("/{userId}/apply")
     public BaseResponse<?> getApplyList(
@@ -143,22 +143,22 @@ public class ContactController {
             IPage<ApplyFriendDTO> applyFriendDTOPage =
                     applyFriendService.getReceivedRequestsWithUserInfo(userId, pageRequest);
 
-            // 使用 PageResponse 统一返回格式
+            // Wrap it in PageResponse for a consistent shape
             return ResultUtils.success(PageResponse.of(applyFriendDTOPage));
         } catch (BusinessException e) {
-            log.error("获取好友申请列表失败，用户ID：{}，原因：{}", userId, e.getMessage());
+            log.error("Failed to load the friend request list, user id: {}, cause: {}", userId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("获取好友申请列表失败，用户ID：{}，原因：{}", userId, e.getMessage(), e);
+            log.error("Failed to load the friend request list, user id: {}, cause: {}", userId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 获取未读好友申请数量
+     * Returns the number of unread friend requests
      *
-     * @param userId 用户ID
-     * @return 形如 {"count": 3} 的对象
+     * @param userId the user id
+     * @return an object shaped like {"count": 3}
      */
     @GetMapping("/{userId}/applyCount")
     public BaseResponse<?> getUnreadApplyCount(@PathVariable("userId") Long userId) {
@@ -168,20 +168,20 @@ public class ContactController {
             result.put("count", count);
             return ResultUtils.success(result);
         } catch (BusinessException e) {
-            log.error("获取未读好友申请数量失败，用户ID：{}，原因：{}", userId, e.getMessage());
+            log.error("Failed to count the unread friend requests, user id: {}, cause: {}", userId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("获取未读好友申请数量失败，用户ID：{}，原因：{}", userId, e.getMessage(), e);
+            log.error("Failed to count the unread friend requests, user id: {}, cause: {}", userId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 删除好友
+     * Removes a friend
      *
-     * @param userId        用户ID
-     * @param receiveuserId 被删除的好友ID
-     * @return 是否成功
+     * @param userId        the user id
+     * @param receiveuserId the id of the friend being removed
+     * @return whether the operation succeeded
      */
     @DeleteMapping("/{userId}/friend/{receiveuserId}")
     public BaseResponse<?> deleteFriend(
@@ -193,23 +193,23 @@ public class ContactController {
             boolean result = friendService.deleteFriend(currentUserId, friendId);
             return ResultUtils.success(result);
         } catch (NumberFormatException e) {
-            log.error("删除好友失败，用户ID格式错误，用户：{}，好友：{}", userId, receiveuserId);
-            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "用户ID格式错误");
+            log.error("Failed to remove the friend, malformed user id, user: {}, friend: {}", userId, receiveuserId);
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "Malformed user id");
         } catch (BusinessException e) {
-            log.error("删除好友失败，用户：{}，好友：{}，原因：{}", userId, receiveuserId, e.getMessage());
+            log.error("Failed to remove the friend, user: {}, friend: {}, cause: {}", userId, receiveuserId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("删除好友失败，用户：{}，好友：{}，原因：{}", userId, receiveuserId, e.getMessage(), e);
+            log.error("Failed to remove the friend, user: {}, friend: {}, cause: {}", userId, receiveuserId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 拉黑好友
+     * Blocks a friend
      *
-     * @param userId        用户ID
-     * @param receiveuserId 被拉黑的好友ID
-     * @return 是否成功
+     * @param userId        the user id
+     * @param receiveuserId the id of the friend being blocked
+     * @return whether the operation succeeded
      */
     @PostMapping("/{userId}/block/{receiveuserId}")
     public BaseResponse<?> blockFriend(
@@ -221,23 +221,23 @@ public class ContactController {
             boolean result = friendService.blockFriend(currentUserId, friendId);
             return ResultUtils.success(result);
         } catch (NumberFormatException e) {
-            log.error("拉黑好友失败，用户ID格式错误，用户：{}，好友：{}", userId, receiveuserId);
-            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "用户ID格式错误");
+            log.error("Failed to block the friend, malformed user id, user: {}, friend: {}", userId, receiveuserId);
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "Malformed user id");
         } catch (BusinessException e) {
-            log.error("拉黑好友失败，用户：{}，好友：{}，原因：{}", userId, receiveuserId, e.getMessage());
+            log.error("Failed to block the friend, user: {}, friend: {}, cause: {}", userId, receiveuserId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("拉黑好友失败，用户：{}，好友：{}，原因：{}", userId, receiveuserId, e.getMessage(), e);
+            log.error("Failed to block the friend, user: {}, friend: {}, cause: {}", userId, receiveuserId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 取消拉黑好友
+     * Unblocks a friend
      *
-     * @param userId        用户ID
-     * @param receiveuserId 取消拉黑的好友ID
-     * @return 是否成功
+     * @param userId        the user id
+     * @param receiveuserId the id of the friend being unblocked
+     * @return whether the operation succeeded
      */
     @DeleteMapping("/{userId}/block/{receiveuserId}")
     public BaseResponse<?> unblockFriend(
@@ -249,24 +249,24 @@ public class ContactController {
             boolean result = friendService.unblockFriend(currentUserId, friendId);
             return ResultUtils.success(result);
         } catch (NumberFormatException e) {
-            log.error("取消拉黑好友失败，用户ID格式错误，用户：{}，好友：{}", userId, receiveuserId);
-            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "用户ID格式错误");
+            log.error("Failed to unblock the friend, malformed user id, user: {}, friend: {}", userId, receiveuserId);
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "Malformed user id");
         } catch (BusinessException e) {
-            log.error("取消拉黑好友失败，用户：{}，好友：{}，原因：{}", userId, receiveuserId, e.getMessage());
+            log.error("Failed to unblock the friend, user: {}, friend: {}, cause: {}", userId, receiveuserId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("取消拉黑好友失败，用户：{}，好友：{}，原因：{}", userId, receiveuserId, e.getMessage(), e);
+            log.error("Failed to unblock the friend, user: {}, friend: {}, cause: {}", userId, receiveuserId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 修改好友申请状态
+     * Updates the status of a friend request
      *
-     * @param userId  当前用户ID（申请的接收方）
-     * @param status  目标状态（1:通过、2:拒绝、3:已读）
-     * @param request 申请发送者ID列表
-     * @return 通过时返回新建的会话信息，其余情况返回 true
+     * @param userId  the current user's id (the receiver of the request)
+     * @param status  the target status (1: accept, 2: reject, 3: mark as read)
+     * @param request the ids of the request senders
+     * @return the newly created session when accepting, otherwise true
      */
     @PostMapping("/{userId}/application/{status}")
     public BaseResponse<?> modifyFriendApplicationStatus(
@@ -282,30 +282,30 @@ public class ContactController {
             ModifyFriendApplicationResponse response =
                     applyFriendService.modifyApplicationStatus(receiverId, senderIds, status);
 
-            // 通过申请时返回会话信息，其他情况返回 true
+            // Return the session when the request is accepted, otherwise true
             return ResultUtils.success(response != null ? response : true);
         } catch (NumberFormatException e) {
-            log.error("修改好友申请状态失败，用户ID格式错误，用户：{}", userId);
-            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "用户ID格式错误");
+            log.error("Failed to update the friend request status, malformed user id, user: {}", userId);
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "Malformed user id");
         } catch (IllegalArgumentException e) {
-            // FriendApplicationStatusEnum.fromCode 对未知状态码抛出
-            log.error("修改好友申请状态失败，状态值无效，用户：{}，状态：{}", userId, status);
-            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "不允许修改为该状态值");
+            // FriendApplicationStatusEnum.fromCode throws on an unknown status code
+            log.error("Failed to update the friend request status, invalid status, user: {}, status: {}", userId, status);
+            return ResultUtils.error(ErrorCode.PARAMS_ERROR, "That status value is not allowed");
         } catch (BusinessException e) {
-            log.error("修改好友申请状态失败，用户：{}，状态：{}，原因：{}", userId, status, e.getMessage());
+            log.error("Failed to update the friend request status, user: {}, status: {}, cause: {}", userId, status, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("修改好友申请状态失败，用户：{}，状态：{}，原因：{}", userId, status, e.getMessage(), e);
+            log.error("Failed to update the friend request status, user: {}, status: {}, cause: {}", userId, status, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
     /**
-     * 获取好友详情
+     * Returns a friend's details
      *
-     * @param userId   用户ID
-     * @param friendId 好友ID
-     * @return 好友详情
+     * @param userId   the user id
+     * @param friendId the friend's id
+     * @return the friend's details
      */
     @GetMapping("/{userId}/friend/{friendId}")
     public BaseResponse<?> getFriendDetail(
@@ -315,10 +315,10 @@ public class ContactController {
             FriendDetailVO friendDetail = friendService.getFriendDetails(userId, friendId);
             return ResultUtils.success(friendDetail);
         } catch (BusinessException e) {
-            log.error("获取好友详情失败，用户：{}，好友：{}，原因：{}", userId, friendId, e.getMessage());
+            log.error("Failed to load the friend's details, user: {}, friend: {}, cause: {}", userId, friendId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("获取好友详情失败，用户：{}，好友：{}，原因：{}", userId, friendId, e.getMessage(), e);
+            log.error("Failed to load the friend's details, user: {}, friend: {}, cause: {}", userId, friendId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }

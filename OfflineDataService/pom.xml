@@ -42,7 +42,7 @@
         <dependency>
             <groupId>com.alibaba.otter</groupId>
             <artifactId>canal.client</artifactId>
-            <version>1.1.7</version> <!-- 需与Canal服务端版本一致 -->
+            <version>1.1.7</version> <!-- Must match the Canal server version -->
         </dependency>
 
         <dependency>

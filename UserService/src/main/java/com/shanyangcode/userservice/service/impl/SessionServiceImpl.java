@@ -30,12 +30,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 会话服务实现类
+ * Session service implementation
  *
- * 核心改动：
- * - 使用Lambda Wrapper替代string-based查询
- * - 使用Kafka异步通知替代HTTP同步调用
- * - 使用SnowflakeUtil替代Snowflake
+ * Key design points:
+ * - Uses lambda wrappers instead of string-based queries
+ * - Uses asynchronous Kafka notifications instead of synchronous HTTP calls
+ * - Uses SnowflakeUtil instead of Snowflake
  */
 @Slf4j
 @Service
@@ -49,23 +49,23 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     private final NotificationService notificationService;
 
     /**
-     * 用户角色常量
+     * User role constants
      */
-    private static final int USER_ROLE_GROUP_OWNER = 0; // 群主
-    private static final int USER_ROLE_GROUP_MEMBER = 2; // 群成员
+    private static final int USER_ROLE_GROUP_OWNER = 0; // group owner
+    private static final int USER_ROLE_GROUP_MEMBER = 2; // group member
 
     /**
-     * 会话状态常量
+     * Session status constants
      */
     private static final int SESSION_STATUS_NORMAL = 0;
 
     /**
-     * 用户状态常量
+     * User status constants
      */
     private static final int USER_STATUS_NORMAL = 0;
 
     /**
-     * 默认群头像URL
+     * Default group avatar URL
      */
     private static final String DEFAULT_GROUP_AVATAR_URL = "https://video.shanyangcode.com/image/default/A9C9C83CCCE043EC8253DB5D7545DCB4-6-2.png";
 
@@ -82,10 +82,10 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     }
 
     /**
-     * 创建群聊
+     * Creates a group chat
      *
-     * @param request 群聊创建请求参数
-     * @return 创建结果
+     * @param request the create-group request
+     * @return the outcome
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -94,40 +94,40 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
         List<Long> memberIds = request.getMemberIds();
         List<String> failedMemberIds = new ArrayList<>();
 
-        // 参数校验
+        // Validate the parameters
         validateCreateGroupParameters(creatorId, memberIds);
 
-        // 确认创建者用户存在且状态正常
+        // Confirm the creator exists and is active
         getActiveUserById(creatorId);
 
-        // 验证好友关系并获取有效成员ID
+        // Check the friendships and collect the eligible member ids
         List<Long> validMemberIds = validateAndFilterMembers(creatorId, memberIds, failedMemberIds);
 
-        ThrowUtils.throwIf(validMemberIds.isEmpty(), ErrorCode.OPERATION_ERROR, "没有有效的好友可加入群聊");
+        ThrowUtils.throwIf(validMemberIds.isEmpty(), ErrorCode.OPERATION_ERROR, "There are no eligible friends to add to the group");
 
-        // 生成sessionId
+        // Generate the sessionId
         Long sessionId = SnowflakeUtil.nextId();
 
-        // 生成群名称
+        // Build the group name
         String groupName = generateGroupName(creatorId, validMemberIds);
 
-        // 插入session表
+        // Insert into the session table
         Session session = createSession(sessionId, groupName);
         sessionMapper.insert(session);
 
-        // 插入user_session表 - 创建者
+        // Insert into user_session - the creator
         insertUserSession(sessionId, creatorId, USER_ROLE_GROUP_OWNER);
 
-        // 计算成员数量 = 有效成员数 + 群主
+        // Member count = the eligible members plus the owner
         int membersCount = validMemberIds.size() + 1;
 
-        // 构建推送新群会话消息
+        // Build the new-group-session notification
         NewGroupSessionNotificationDTO notification = buildNewGroupSessionNotification(creatorId, groupName, membersCount);
 
-        // 插入user_session表 - 其他成员并推送Kafka通知
+        // Insert into user_session for the other members and publish the Kafka notifications
         insertMembersAndPushNotifications(validMemberIds, sessionId, notification);
 
-        // 响应结果
+        // Build the response
         CreateGroupResponse response = new CreateGroupResponse();
         BeanUtils.copyProperties(notification, response);
         response.setCreatorId(String.valueOf(creatorId));
@@ -137,30 +137,30 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
         return response;
     }
 
-    /* ===================== 私有方法 ===================== */
+    /* ===================== Private helpers ===================== */
 
     /**
-     * 校验创建群聊请求参数的合法性
+     * Validates the create-group request parameters
      */
     private void validateCreateGroupParameters(Long creatorId, List<Long> memberIds) {
-        ThrowUtils.throwIf(creatorId == null, ErrorCode.PARAMS_ERROR, "创建者ID不能为空");
-        ThrowUtils.throwIf(memberIds == null || memberIds.isEmpty(), ErrorCode.PARAMS_ERROR, "成员ID列表不能为空");
+        ThrowUtils.throwIf(creatorId == null, ErrorCode.PARAMS_ERROR, "Creator id must not be empty");
+        ThrowUtils.throwIf(memberIds == null || memberIds.isEmpty(), ErrorCode.PARAMS_ERROR, "The member id list must not be empty");
     }
 
     /**
-     * 判断用户状态信息
+     * Checks the user's status
      */
     private void getActiveUserById(Long userId) {
         User user = userService.getById(userId);
         ThrowUtils.throwIf(user == null || user.getState() != USER_STATUS_NORMAL,
-                ErrorCode.NOT_FOUND_ERROR, "用户不存在或状态异常");
+                ErrorCode.NOT_FOUND_ERROR, "The user does not exist or is not active");
     }
 
     /**
-     * 验证并过滤成员ID，返回有效的成员ID列表
+     * Validates and filters the member ids, returning the eligible ones
      */
     private List<Long> validateAndFilterMembers(Long creatorId, List<Long> memberIds, List<String> failedMemberIds) {
-        // 获取创建者所有好友ID
+        // Load every friend id of the creator
         LambdaQueryWrapper<Friend> friendWrapper = new LambdaQueryWrapper<>();
         friendWrapper.eq(Friend::getUserId, creatorId)
                 .eq(Friend::getStatus, FriendStatusEnum.NORMAL.getCode());
@@ -177,7 +177,7 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
                 validMemberIds.add(memberId);
             } else {
                 failedMemberIds.add(String.valueOf(memberId));
-                log.info("成员ID {} 不是创建者的好友，无法加入群聊", memberId);
+                log.info("Member {} is not a friend of the creator and cannot join the group", memberId);
             }
         }
 
@@ -185,30 +185,30 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     }
 
     /**
-     * 生成群名称，最多16个字符
+     * Builds the group name, capped at 16 characters
      */
     private String generateGroupName(Long creatorId, List<Long> memberIds) {
         StringBuilder groupNameBuilder = new StringBuilder();
         List<Long> allMemberIds = new ArrayList<>(memberIds);
-        allMemberIds.add(0, creatorId); // 确保群主 ID 在首位
+        allMemberIds.add(0, creatorId); // make sure the owner's id comes first
 
-        // 查询所有用户信息
+        // Load every user record
         List<User> users = userService.listByIds(allMemberIds);
 
-        // 构建 ID -> User 映射，确保顺序可控
+        // Build an id -> User map so the ordering stays under our control
         Map<Long, User> userMap = users.stream()
                 .collect(Collectors.toMap(User::getUserId, user -> user));
 
-        // 按照 allMemberIds 的顺序拼接用户名
+        // Join the names in the order of allMemberIds
         for (Long memberId : allMemberIds) {
             User user = userMap.get(memberId);
             if (user != null) {
                 if (!groupNameBuilder.isEmpty()) {
-                    groupNameBuilder.append("、");
+                    groupNameBuilder.append(", ");
                 }
                 groupNameBuilder.append(user.getNickname());
                 if (groupNameBuilder.length() >= 16) {
-                    groupNameBuilder.setLength(16); // 截取前 16 个字符
+                    groupNameBuilder.setLength(16); // keep the first 16 characters
                     break;
                 }
             }
@@ -217,7 +217,7 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     }
 
     /**
-     * 创建会话对象
+     * Creates the session object
      */
     private Session createSession(Long sessionId, String groupName) {
         Session session = new Session();
@@ -232,7 +232,7 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     }
 
     /**
-     * 插入用户会话关系
+     * Inserts the user-session row
      */
     private void insertUserSession(Long sessionId, Long userId, int role) {
         UserSession userSession = new UserSession();
@@ -246,7 +246,7 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     }
 
     /**
-     * 构建新群会话的通知消息
+     * Builds the notification message for the new group session
      */
     private NewGroupSessionNotificationDTO buildNewGroupSessionNotification(Long creatorId, String groupName, int membersCount) {
         NewGroupSessionNotificationDTO notification = new NewGroupSessionNotificationDTO();
@@ -258,19 +258,19 @@ public class SessionServiceImpl extends ServiceImpl<SessionMapper, Session>
     }
 
     /**
-     * 插入成员并推送Kafka通知
+     * Inserts the members and publishes the Kafka notifications
      */
     private void insertMembersAndPushNotifications(List<Long> memberIds, Long sessionId,
                                                    NewGroupSessionNotificationDTO notification) {
         for (Long memberId : memberIds) {
-            // 插入用户会话关系
+            // Insert the user-session row
             insertUserSession(sessionId, memberId, USER_ROLE_GROUP_MEMBER);
 
-            // 推送Kafka通知
+            // Publish the Kafka notification
             try {
                 notificationService.pushGroupNewSession(memberId, sessionId, notification);
             } catch (Exception e) {
-                log.error("推送群聊会话失败，成员ID {}，错误信息：{}", memberId, e.getMessage());
+                log.error("Failed to push the group session notification, member id {}, error: {}", memberId, e.getMessage());
             }
         }
     }

@@ -14,10 +14,10 @@ public interface UserSessionService extends IService<UserSession> {
     List<Long> getSessionIdsByUserId(Long userId);
 
     /**
-     * 获取群聊成员数量
+     * Returns the number of members in a group chat
      *
-     * @param sessionId 会话ID
-     * @return 群聊成员数量
+     * @param sessionId the session id
+     * @return the number of group members
      */
     int getGroupMemberCount(Long sessionId);
 }

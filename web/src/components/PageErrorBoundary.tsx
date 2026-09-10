@@ -33,12 +33,12 @@ export class PageErrorBoundary extends Component<Props, State> {
     return (
       <div className={styles.wrap} role="alert">
         <p className={styles.eyebrow}>SOMETHING WENT WRONG</p>
-        <h2>这一页暂时打不开</h2>
-        <p>刚才的页面渲染失败了。可以重试，或先回到聊天继续使用。</p>
+        <h2>This page could not be opened</h2>
+        <p>Rendering this page failed. You can try again, or go back to your chats and carry on.</p>
         <div className={styles.actions}>
-          <Button onClick={() => this.setState({ error: null })}>重新加载此页</Button>
+          <Button onClick={() => this.setState({ error: null })}>Reload this page</Button>
           <Button variant="secondary" onClick={() => window.location.assign('/app/chat')}>
-            回到聊天
+            Back to chat
           </Button>
         </div>
       </div>

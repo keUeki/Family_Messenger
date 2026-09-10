@@ -44,13 +44,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 /**
- * 好友服务实现类
+ * Friend service implementation
  * <p>
- * 核心改动：
- * - 使用Lambda Wrapper替代string-based查询
- * - 使用Kafka异步通知替代HTTP同步调用
- * - 处理复合主键（user_id, friend_id）
- * - 状态枚举值从1/2/3调整为0/1/2
+ * Key design points:
+ * - Uses lambda wrappers instead of string-based queries
+ * - Uses asynchronous Kafka notifications instead of synchronous HTTP calls
+ * - Handles the composite primary key (user_id, friend_id)
+ * - The status enum values were changed from 1/2/3 to 0/1/2
  */
 @Slf4j
 @Service
@@ -67,20 +67,20 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     private final UserSessionService userSessionService;
 
     /**
-     * 会话内用户角色：普通成员
+     * Role within a session: regular member
      */
     private static final int USER_ROLE_NORMAL = 2;
 
     /**
-     * 会话状态：正常
+     * Session status: active
      */
     private static final int SESSION_STATUS_NORMAL = 0;
 
     /**
-     * 好友状态缓存 Key 前缀
+     * Key prefix for the friendship-status cache
      * <p>
-     * 该缓存由跨服务的消息校验链路读取，好友关系一旦变更必须双向清除，
-     * 否则被拉黑/删除的一方在 TTL 内仍会被判定为可发送。
+     * The cross-service message validation path reads this cache, so any change to a friendship must
+     * clear both directions; otherwise a blocked or removed user is still treated as allowed until the TTL expires.
      */
     private static final String FRIEND_STATUS_KEY_PREFIX = "msg:validate:friend:status:";
 
@@ -106,49 +106,49 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
     @Override
     public FriendDetailVO searchUserByKeyword(String userId, String keyword) {
-        ThrowUtils.throwIf(!StringUtils.hasText(keyword), ErrorCode.PARAMS_ERROR, "搜索关键字不能为空");
+        ThrowUtils.throwIf(!StringUtils.hasText(keyword), ErrorCode.PARAMS_ERROR, "The search term must not be empty");
 
-        // 根据正则表达式自动判断关键字类型并构建查询条件
+        // Detect the keyword type by regex and build the matching predicate
         LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
         if (keyword.matches(UserConstant.PHONE_REGEX)) {
             queryWrapper.eq(User::getPhone, keyword);
         } else if (keyword.matches(UserConstant.EMAIL_REGEX)) {
             queryWrapper.eq(User::getEmail, keyword);
         } else {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "请输入有效的手机号或邮箱");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Enter a valid phone number or email address");
         }
 
         User user = userService.getOne(queryWrapper);
-        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "The user does not exist");
 
-        // 获取用户详情
+        // Load the user's details
         return getFriendDetails(userId, String.valueOf(user.getUserId()));
     }
 
 
     /**
-     * 获取好友的详细信息
+     * Returns a friend's details
      *
-     * @param userId   当前用户Id
-     * @param friendId 好友Id
-     * @return FriendDetailVO 对象
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return the FriendDetailVO
      */
     @Override
     public FriendDetailVO getFriendDetails(String userId, String friendId) {
         Long userId1 = parseUserId(userId);
         Long friendId1 = parseUserId(friendId);
 
-        // 1. 获取好友用户信息
+        // 1. Load the friend's user record
         User friendUser = userService.getById(friendId1);
         validateFriendUser(friendUser);
 
-        // 2. 构建好友详情VO
+        // 2. Build the friend detail VO
         FriendDetailVO friendDetailVO = buildFriendDetailVO(friendUser);
 
-        // 3. 填充会话ID
+        // 3. Fill in the session id
         populateSessionId(userId1, friendId1, friendDetailVO);
 
-        // 4. 填充好友状态
+        // 4. Fill in the friendship status
         populateFriendStatus(userId1, friendId1, friendDetailVO);
 
         return friendDetailVO;
@@ -156,39 +156,39 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
 
     /**
-     * 解析并验证用户ID
+     * Parses and validates a user id
      *
-     * @param userId 用户Id字符串
-     * @return 解析后的用户ID
+     * @param userId the user id as a string
+     * @return the parsed user id
      */
     private Long parseUserId(String userId) {
         try {
             return Long.valueOf(userId);
         } catch (NumberFormatException e) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户ID格式错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "Malformed user id");
         }
     }
 
     /**
-     * 验证好友用户是否存在及其状态
+     * Checks that the friend exists and is in a usable state
      *
-     * @param friendUser 好友的User实体
+     * @param friendUser the friend's User entity
      */
     private void validateFriendUser(User friendUser) {
-        ThrowUtils.throwIf(friendUser == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+        ThrowUtils.throwIf(friendUser == null, ErrorCode.NOT_FOUND_ERROR, "The user does not exist");
 
-        // 用户状态：0 正常，1 封禁，2 注销
-        ThrowUtils.throwIf(friendUser.getState() == UserStateEnum.BANNED.getCode(), ErrorCode.FORBIDDEN_ERROR, "该用户已被封禁");
+        // User status: 0 active, 1 banned, 2 deactivated
+        ThrowUtils.throwIf(friendUser.getState() == UserStateEnum.BANNED.getCode(), ErrorCode.FORBIDDEN_ERROR, "That user has been banned");
 
-        ThrowUtils.throwIf(friendUser.getState() == UserStateEnum.CANCELLED.getCode(), ErrorCode.NOT_FOUND_ERROR, "该用户已注销");
+        ThrowUtils.throwIf(friendUser.getState() == UserStateEnum.CANCELLED.getCode(), ErrorCode.NOT_FOUND_ERROR, "That user has deactivated their account");
     }
 
 
     /**
-     * 构建好友详细信息VO
+     * Builds the friend detail VO
      *
-     * @param friendUser 好友的User实体
-     * @return FriendDetailVO 对象
+     * @param friendUser the friend's User entity
+     * @return the FriendDetailVO
      */
     private FriendDetailVO buildFriendDetailVO(User friendUser) {
         FriendDetailVO vo = new FriendDetailVO();
@@ -203,14 +203,14 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     /**
-     * 填充会话ID到FriendDetailVO
+     * Fills the session id into the FriendDetailVO
      *
-     * @param userId         当前用户ID
-     * @param friendId       好友ID
-     * @param friendDetailVO FriendDetailVO 对象
+     * @param userId         the current user's id
+     * @param friendId       the friend's id
+     * @param friendDetailVO the FriendDetailVO
      */
     private void populateSessionId(Long userId, Long friendId, FriendDetailVO friendDetailVO) {
-        // 1. 查找两个用户共同的单聊会话
+        // 1. Find the one-to-one session the two users share
         LambdaQueryWrapper<UserSession> userSession1Wrapper = new LambdaQueryWrapper<>();
         userSession1Wrapper.eq(UserSession::getUserId, userId);
         List<UserSession> userSessions1 = userSessionMapper.selectList(userSession1Wrapper);
@@ -219,7 +219,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         userSession2Wrapper.eq(UserSession::getUserId, friendId);
         List<UserSession> userSessions2 = userSessionMapper.selectList(userSession2Wrapper);
 
-        // 2. 找出共同的会话ID
+        // 2. Work out the common session ids
         List<Long> sessionIds1 = userSessions1.stream()
                 .map(UserSession::getSessionId)
                 .collect(Collectors.toList());
@@ -230,7 +230,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         sessionIds1.retainAll(sessionIds2);
 
         if (!sessionIds1.isEmpty()) {
-            // 3. 筛选出单聊会话
+            // 3. Keep only the one-to-one sessions
             LambdaQueryWrapper<Session> sessionWrapper = new LambdaQueryWrapper<>();
             sessionWrapper.in(Session::getSessionId, sessionIds1)
                     .eq(Session::getType, SessionTypeConstant.SIGNAL_TYPE);
@@ -248,11 +248,11 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
 
     /**
-     * 填充好友状态到FriendDetailVO
+     * Fills the friendship status into the FriendDetailVO
      *
-     * @param userId         当前用户ID
-     * @param friendId       好友ID
-     * @param friendDetailVO FriendDetailVO 对象
+     * @param userId         the current user's id
+     * @param friendId       the friend's id
+     * @param friendDetailVO the FriendDetailVO
      */
     private void populateFriendStatus(Long userId, Long friendId, FriendDetailVO friendDetailVO) {
         LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
@@ -268,13 +268,13 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     /**
-     * 获取用户的好友列表
-     * 支持分页和关键字搜索
+     * Returns the user's friend list
+     * Supports pagination and keyword search
      *
-     * @param userId1      用户ID
-     * @param pageRequest 分页参数
-     * @param key         搜索关键字
-     * @return 分页的好友DTO列表
+     * @param userId1      the user id
+     * @param pageRequest the pagination parameters
+     * @param key         the search term
+     * @return a page of friend DTOs
      */
     @Override
     public IPage<FriendDTO> getFriends(String userId1, PageRequest pageRequest, String key) {
@@ -284,32 +284,32 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         int pageNum = pageRequest.getPageNum();
         int pageSize = pageRequest.getPageSize();
 
-        // 1. 查询好友关系列表（使用Lambda Wrapper）
+        // 1. Query the friendship rows (using a lambda wrapper)
         LambdaQueryWrapper<Friend> friendWrapper = new LambdaQueryWrapper<>();
         friendWrapper.eq(Friend::getUserId, userId)
                 .ne(Friend::getStatus, FriendStatusEnum.DELETED.getCode())
-                .orderByDesc(Friend::getCreatedTime); // 按创建时间降序排列
+                .orderByDesc(Friend::getCreatedTime); // order by creation time, newest first
 
         List<Friend> friendList = friendMapper.selectList(friendWrapper);
 
-        // 2. 获取好友ID列表，从好友列表中提取所有好友的ID，组成一个新的ID列表。
-        List<Long> friendIds = friendList.stream() // 将好友列表转换成流
-                .map(Friend::getFriendId) // 对每个好友对象，提取其 friendId（映射转换）
-                .collect(Collectors.toList()); // 将所有ID收集成一个 List<Long> 类型的列表
+        // 2. Collect the friend ids from the friendship rows into a new list.
+        List<Long> friendIds = friendList.stream() // stream the friendship rows
+                .map(Friend::getFriendId) // map each row to its friendId
+                .collect(Collectors.toList()); // collect the ids into a List<Long>
 
         if (friendIds.isEmpty()) {
-            // 返回空分页结果
+            // Return an empty page
             Page<FriendDTO> emptyPage = new Page<>(pageNum, pageSize);
             emptyPage.setTotal(0);
             emptyPage.setRecords(List.of());
             return emptyPage;
         }
 
-        // 3. 查询好友用户信息
+        // 3. Load the friends' user records
         LambdaQueryWrapper<User> userWrapper = new LambdaQueryWrapper<>();
         userWrapper.in(User::getUserId, friendIds);
 
-        // 如果有搜索关键字，添加搜索条件
+        // Add the search predicate when a keyword was supplied
         if (StringUtils.hasText(key)) {
             userWrapper.and(wrapper -> wrapper
                     .like(User::getNickname, key)
@@ -319,40 +319,40 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                     .like(User::getUserId, key));
         }
 
-        List<User> users = userService.list(userWrapper); // 好友信息列表
+        List<User> users = userService.list(userWrapper); // the friends' user records
 
-        // 4. 查询好友与当前用户之间的会话ID映射（批量查询优化）
+        // 4. Build the friend -> session id map (batched, to avoid N+1)
         Map<Long, String> friendSessionMap = buildFriendSessionMap(userId, friendIds);
 
-        // 5. 构建好友ID到好友关系的映射（避免嵌套stream，O(n+m)），n = friendList 的大小（好友关系数量），m = users 的大小（查询到的好友用户信息数量）
+        // 5. Index the friendship rows by friend id, which keeps this O(n+m) instead of nesting streams; n is the number of friendship rows and m the number of user records loaded
         Map<Long, Friend> friendRelationMap = friendList.stream()
-                .collect(Collectors.toMap(Friend::getFriendId, f -> f)); // 创建一个 Map，将好友关系列表转换为 Map，好友ID为key、好友对象为value。
+                .collect(Collectors.toMap(Friend::getFriendId, f -> f)); // build a Map keyed by friend id, with the friendship row as the value
 
-        // 6. 构建 FriendDTO 列表
+        // 6. Build the FriendDTO list
         List<FriendDTO> friendDTOList = users.stream()
                 .map(user -> {
                     FriendDTO dto = new FriendDTO();
-                    dto.setUserId(String.valueOf(user.getUserId())); // 设置dto的ID（好友用户ID）
+                    dto.setUserId(String.valueOf(user.getUserId())); // set the DTO id (the friend's user id)
                     dto.setNickname(user.getNickname());
                     dto.setAvatar(user.getAvatar());
                     dto.setSignature(user.getDescription());
-                    Friend friendRelation = friendRelationMap.get(user.getUserId()); // 通过用户ID从映射表中获取对应的好友关系
-                    dto.setStatus(friendRelation != null ? friendRelation.getStatus() : FriendStatusEnum.NON_FRIEND.getCode()); // 如果存在好友关系则取其状态，否则标记为非好友
-                    dto.setSessionId(friendSessionMap.get(user.getUserId())); // 从会话映射中获取该用户与当前用户的聊天会话ID
+                    Friend friendRelation = friendRelationMap.get(user.getUserId()); // look the friendship row up by user id
+                    dto.setStatus(friendRelation != null ? friendRelation.getStatus() : FriendStatusEnum.NON_FRIEND.getCode()); // use its status when the row exists, otherwise mark them as not a friend
+                    dto.setSessionId(friendSessionMap.get(user.getUserId())); // take the id of the session this user shares with the current user
                     return dto;
                 })
                 .collect(Collectors.toList());
 
-        // 7. 手动分页
-        // 创建分页对象：初始化页码和每页大小
+        // 7. Paginate by hand
+        // Create the page object with the page number and page size
         Page<FriendDTO> page = new Page<>(pageNum, pageSize);
         page.setTotal(friendDTOList.size());
 
-        // 计算索引范围：根据页码计算起始和结束位置，防止越界
+        // Work out the index range from the page number, clamped to stay in bounds
         int fromIndex = (pageNum - 1) * pageSize;
         int toIndex = Math.min(fromIndex + pageSize, friendDTOList.size());
 
-        // 截取数据：使用 subList 提取当前页数据，若超出范围则返回空列表
+        // Slice out the current page with subList, returning an empty list when out of range
         if (fromIndex < friendDTOList.size()) {
             page.setRecords(friendDTOList.subList(fromIndex, toIndex));
         } else {
@@ -364,13 +364,13 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
 
     /**
-     * 批量构建好友与会话ID的映射关系
+     * Builds the friend -> session id map in bulk
      * <p>
-     * 优化查询性能，避免N+1问题
+     * Keeps the query count flat and avoids the N+1 problem
      *
-     * @param userId    当前用户ID
-     * @param friendIds 好友ID列表
-     * @return 好友ID到会话ID的映射
+     * @param userId    the current user's id
+     * @param friendIds the friend ids
+     * @return a map from friend id to session id
      */
     private Map<Long, String> buildFriendSessionMap(Long userId, List<Long> friendIds) {
         Map<Long, String> friendSessionMap = new HashMap<>();
@@ -379,7 +379,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
             return friendSessionMap;
         }
 
-        // 1. 查询当前用户的所有 UserSession
+        // 1. Load every UserSession row for the current user
         LambdaQueryWrapper<UserSession> currentUserSessionWrapper = new LambdaQueryWrapper<>();
         currentUserSessionWrapper.eq(UserSession::getUserId, userId);
         List<UserSession> currentUserSessions = userSessionMapper.selectList(currentUserSessionWrapper);
@@ -388,13 +388,13 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
             return friendSessionMap;
         }
 
-        // 2. 获取当前用户的所有会话ID
-        // 把上面的 currentUserSessions 对象转换成会话ID列表
+        // 2. Collect the current user's session ids
+        // turn the currentUserSessions rows above into a list of session ids
         List<Long> currentUserSessionIds = currentUserSessions.stream()
                 .map(UserSession::getSessionId)
                 .collect(Collectors.toList());
 
-        // 3. 查询这些会话的详细信息，筛选出单聊会话（SIGNAL_TYPE）
+        // 3. Load those sessions and keep only the one-to-one ones (SIGNAL_TYPE)
         LambdaQueryWrapper<Session> sessionWrapper = new LambdaQueryWrapper<>();
         sessionWrapper.in(Session::getSessionId, currentUserSessionIds)
                 .eq(Session::getType, SessionTypeConstant.SIGNAL_TYPE);
@@ -404,23 +404,23 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
             return friendSessionMap;
         }
 
-        // 4. 获取单聊会话ID列表
+        // 4. Collect the one-to-one session ids
         List<Long> singleChatSessionIds = singleChatSessions.stream()
                 .map(Session::getSessionId)
                 .collect(Collectors.toList());
 
-        // 5. 查询所有好友在这些会话中的 UserSession 记录
+        // 5. Load the friends' UserSession rows for those sessions
         LambdaQueryWrapper<UserSession> friendSessionWrapper = new LambdaQueryWrapper<>();
         friendSessionWrapper.in(UserSession::getUserId, friendIds)
                 .in(UserSession::getSessionId, singleChatSessionIds);
         List<UserSession> friendUserSessions = userSessionMapper.selectList(friendSessionWrapper);
 
-        // 6. 构建 friendId -> sessionId 映射
+        // 6. Build the friendId -> sessionId map
         for (UserSession friendUserSession : friendUserSessions) {
             Long friendId = friendUserSession.getUserId();
             Long sessionId = friendUserSession.getSessionId();
 
-            // 验证这个会话是否确实是当前用户和该好友的共同会话 double check
+            // double-check that the session really is shared by the current user and this friend
             if (currentUserSessionIds.contains(sessionId)) {
                 friendSessionMap.put(friendId, String.valueOf(sessionId));
             }
@@ -431,27 +431,27 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
 
     /**
-     * 校验用户ID的有效性
+     * Validates a user id
      *
-     * @param userId 用户ID
+     * @param userId the user id
      */
     private void validateUserId(Long userId) {
-        ThrowUtils.throwIf(userId == null || userId < 0, ErrorCode.PARAMS_ERROR, "用户ID无效");
+        ThrowUtils.throwIf(userId == null || userId < 0, ErrorCode.PARAMS_ERROR, "Invalid user id");
     }
 
 
     /**
-     * 删除好友
+     * Removes a friend
      * <p>
-     * 处理流程：
-     * 1. 删除双方之间的好友申请记录
-     * 2. 删除双向好友关系
-     * 3. 删除双方的单聊会话及用户会话关系
-     * 4. 清除双向好友状态缓存
+     * Processing steps:
+     * 1. Delete the friend request rows between the two users
+     * 2. Delete both directions of the friendship
+     * 3. Delete their one-to-one session and the user-session rows
+     * 4. Clear the friendship-status cache in both directions
      *
-     * @param userId   当前用户ID
-     * @param friendId 好友ID
-     * @return 是否成功
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return whether the operation succeeded
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -459,39 +459,39 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         validateUserId(userId);
         validateUserId(friendId);
 
-        // 1. 检查好友关系是否存在
+        // 1. Check that the friendship exists
         LambdaQueryWrapper<Friend> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Friend::getUserId, userId)
                 .eq(Friend::getFriendId, friendId);
         Friend friend = this.getOne(queryWrapper);
 
-        ThrowUtils.throwIf(friend == null, ErrorCode.NOT_FOUND_ERROR, "好友关系不存在");
+        ThrowUtils.throwIf(friend == null, ErrorCode.NOT_FOUND_ERROR, "That friendship does not exist");
 
         try {
-            // 2. 删除好友申请记录
+            // 2. Delete the friend request rows
             deleteApplyFriendRecords(userId, friendId);
 
-            // 3. 删除双向好友关系记录
+            // 3. Delete both directions of the friendship
             deleteFriendRecords(userId, friendId);
 
-            // 4. 删除单聊会话记录
+            // 4. Delete the one-to-one session
             deleteSessionRecords(userId, friendId);
 
-            // 5. 清除双向好友关系缓存
+            // 5. Clear the friendship cache in both directions
             evictFriendCache(userId, friendId);
 
             return true;
         } catch (Exception e) {
-            log.error("删除好友失败，用户ID：{}，好友ID：{}，原因：{}", userId, friendId, e.getMessage(), e);
-            throw new RuntimeException("删除好友失败");
+            log.error("Failed to remove the friend, user id: {}, friend id: {}, cause: {}", userId, friendId, e.getMessage(), e);
+            throw new RuntimeException("Failed to remove the friend");
         }
     }
 
     /**
-     * 删除双方之间的好友申请记录（两个方向）
+     * Deletes the friend request rows between the two users, in both directions
      *
-     * @param userId   用户ID
-     * @param friendId 好友ID
+     * @param userId   the user id
+     * @param friendId the friend's id
      */
     private void deleteApplyFriendRecords(Long userId, Long friendId) {
         LambdaQueryWrapper<ApplyFriend> wrapper = new LambdaQueryWrapper<>();
@@ -506,10 +506,10 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     /**
-     * 删除双向好友关系记录
+     * Deletes both directions of the friendship
      *
-     * @param userId   用户ID
-     * @param friendId 好友ID
+     * @param userId   the user id
+     * @param friendId the friend's id
      */
     private void deleteFriendRecords(Long userId, Long friendId) {
         LambdaQueryWrapper<Friend> wrapper = new LambdaQueryWrapper<>();
@@ -524,13 +524,13 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     /**
-     * 删除双方共同的单聊会话及其用户会话关系
+     * Deletes the one-to-one session the two users share, and its user-session rows
      *
-     * @param userId   用户ID
-     * @param friendId 好友ID
+     * @param userId   the user id
+     * @param friendId the friend's id
      */
     private void deleteSessionRecords(Long userId, Long friendId) {
-        // 1. 分别查出双方的会话
+        // 1. Load each user's sessions
         LambdaQueryWrapper<UserSession> userSession1Wrapper = new LambdaQueryWrapper<>();
         userSession1Wrapper.eq(UserSession::getUserId, userId);
         List<UserSession> userSessions1 = userSessionMapper.selectList(userSession1Wrapper);
@@ -539,7 +539,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         userSession2Wrapper.eq(UserSession::getUserId, friendId);
         List<UserSession> userSessions2 = userSessionMapper.selectList(userSession2Wrapper);
 
-        // 2. 取交集，得到双方共同的会话ID
+        // 2. Intersect them to find the sessions they share
         List<Long> commonSessionIds = userSessions1.stream()
                 .map(UserSession::getSessionId)
                 .collect(Collectors.toList());
@@ -547,13 +547,13 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
                 .map(UserSession::getSessionId)
                 .collect(Collectors.toList());
 
-        commonSessionIds.retainAll(sessionIds2); // 保留 commonSessionIds 中与 sessionIds2 的交集
+        commonSessionIds.retainAll(sessionIds2); // keep only the ids that also appear in sessionIds2
 
         if (commonSessionIds.isEmpty()) {
             return;
         }
 
-        // 3. 只删除其中的单聊会话，群聊会话不受影响
+        // 3. Delete only the one-to-one sessions; group sessions are left alone
         LambdaQueryWrapper<Session> sessionWrapper = new LambdaQueryWrapper<>();
         sessionWrapper.in(Session::getSessionId, commonSessionIds)
                 .eq(Session::getType, SessionTypeConstant.SIGNAL_TYPE);
@@ -567,7 +567,7 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
             return;
         }
 
-        // 4. 先删用户会话关系，再删会话本身
+        // 4. Delete the user-session rows first, then the session itself
         LambdaQueryWrapper<UserSession> userSessionDeleteWrapper = new LambdaQueryWrapper<>();
         userSessionDeleteWrapper.in(UserSession::getSessionId, singleChatSessionIds);
         userSessionMapper.delete(userSessionDeleteWrapper);
@@ -578,38 +578,38 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
     }
 
     /**
-     * 清除好友关系缓存（双向）
+     * Clears the friendship cache in both directions
      * <p>
-     * 在好友关系发生变更时调用，确保缓存与数据库的一致性：
-     * - 拉黑好友后
-     * - 取消拉黑后
-     * - 删除好友后
+     * Called whenever a friendship changes, to keep the cache consistent with the database:
+     * - after blocking a friend
+     * - after unblocking
+     * - after removing a friend
      * <p>
-     * 必须双向清除：漏掉任一方向，被拉黑/删除的一方在缓存TTL内仍会被判定为可发送。
-     * 缓存清除失败不影响主流程，仅记录日志。
+     * Both directions must be cleared: miss one and the blocked or removed user is still treated as allowed until the cache TTL expires.
+     * A failure to clear the cache does not fail the operation; it is only logged.
      *
-     * @param userId   用户ID
-     * @param friendId 好友ID
+     * @param userId   the user id
+     * @param friendId the friend's id
      */
     private void evictFriendCache(Long userId, Long friendId) {
         try {
             String key1 = FRIEND_STATUS_KEY_PREFIX + userId + ":" + friendId;
             String key2 = FRIEND_STATUS_KEY_PREFIX + friendId + ":" + userId;
             stringRedisTemplate.delete(Arrays.asList(key1, key2));
-            log.info("已清除好友关系缓存，用户ID：{}，好友ID：{}", userId, friendId);
+            log.info("Friendship cache cleared, user id: {}, friend id: {}", userId, friendId);
         } catch (Exception e) {
-            log.warn("清除好友关系缓存失败，用户ID：{}，好友ID：{}，原因：{}", userId, friendId, e.getMessage());
+            log.warn("Failed to clear the friendship cache, user id: {}, friend id: {}, cause: {}", userId, friendId, e.getMessage());
         }
     }
 
     /**
-     * 拉黑好友
+     * Blocks a friend
      * <p>
-     * 只更新当前用户方向的关系状态，对方仍保留正常的好友关系。
+     * Only the current user's side of the relation changes; the other side stays an ordinary friendship.
      *
-     * @param userId   当前用户ID
-     * @param friendId 好友ID
-     * @return 是否成功
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return whether the operation succeeded
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -617,15 +617,15 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         validateUserId(userId);
         validateUserId(friendId);
 
-        // 1. 检查好友关系是否存在
+        // 1. Check that the friendship exists
         LambdaQueryWrapper<Friend> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Friend::getUserId, userId)
                 .eq(Friend::getFriendId, friendId);
         Friend friend = this.getOne(queryWrapper);
 
-        ThrowUtils.throwIf(friend == null, ErrorCode.NOT_FOUND_ERROR, "好友关系不存在");
+        ThrowUtils.throwIf(friend == null, ErrorCode.NOT_FOUND_ERROR, "That friendship does not exist");
 
-        // 2. Friend 使用复合主键，不能用 updateById，必须走 LambdaUpdateWrapper
+        // 2. Friend has a composite primary key, so updateById does not work and a LambdaUpdateWrapper is required
         LambdaUpdateWrapper<Friend> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.set(Friend::getStatus, FriendStatusEnum.BLOCKED.getCode())
                 .set(Friend::getUpdatedTime, LocalDateTime.now())
@@ -634,18 +634,18 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
         boolean result = this.update(updateWrapper);
 
-        // 3. 清除双向好友关系缓存
+        // 3. Clear the friendship cache in both directions
         evictFriendCache(userId, friendId);
 
         return result;
     }
 
     /**
-     * 取消拉黑好友
+     * Unblocks a friend
      *
-     * @param userId   当前用户ID
-     * @param friendId 好友ID
-     * @return 是否成功
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return whether the operation succeeded
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -653,17 +653,17 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         validateUserId(userId);
         validateUserId(friendId);
 
-        // 1. 检查好友关系是否存在
+        // 1. Check that the friendship exists
         LambdaQueryWrapper<Friend> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Friend::getUserId, userId)
                 .eq(Friend::getFriendId, friendId);
         Friend friend = this.getOne(queryWrapper);
 
-        ThrowUtils.throwIf(friend == null, ErrorCode.NOT_FOUND_ERROR, "好友关系不存在");
+        ThrowUtils.throwIf(friend == null, ErrorCode.NOT_FOUND_ERROR, "That friendship does not exist");
         ThrowUtils.throwIf(friend.getStatus() != FriendStatusEnum.BLOCKED.getCode(),
-                ErrorCode.OPERATION_ERROR, "该好友未被拉黑");
+                ErrorCode.OPERATION_ERROR, "That friend is not blocked");
 
-        // 2. Friend 使用复合主键，不能用 updateById，必须走 LambdaUpdateWrapper
+        // 2. Friend has a composite primary key, so updateById does not work and a LambdaUpdateWrapper is required
         LambdaUpdateWrapper<Friend> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.set(Friend::getStatus, FriendStatusEnum.NORMAL.getCode())
                 .set(Friend::getUpdatedTime, LocalDateTime.now())
@@ -672,64 +672,64 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
         boolean result = this.update(updateWrapper);
 
-        // 3. 清除双向好友关系缓存
+        // 3. Clear the friendship cache in both directions
         evictFriendCache(userId, friendId);
 
         return result;
     }
 
     /**
-     * 建立好友关系（好友申请通过时调用）
+     * Establishes a friendship; called when a friend request is accepted
      * <p>
-     * 处理流程：
-     * 1. 验证申请者用户存在性
-     * 2. 检查是否已是好友关系
-     * 3. 创建双向好友关系
-     * 4. 创建单聊会话及用户会话关系
-     * 5. 通过Kafka通知申请方
+     * Processing steps:
+     * 1. Check that the requester exists
+     * 2. Check whether they are already friends
+     * 3. Create both directions of the friendship
+     * 4. Create the one-to-one session and the user-session rows
+     * 5. Notify the requester over Kafka
      *
-     * @param recipient 同意申请的一方
-     * @param friendId  发起申请的一方用户ID
-     * @return 新建会话的信息
+     * @param recipient the party accepting the request
+     * @param friendId  the user id of the party who made the request
+     * @return the newly created session
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ModifyFriendApplicationResponse addFriend(User recipient, Long friendId) {
         validateUserId(friendId);
-        ThrowUtils.throwIf(recipient == null, ErrorCode.NOT_FOUND_ERROR, "接收者用户不存在");
+        ThrowUtils.throwIf(recipient == null, ErrorCode.NOT_FOUND_ERROR, "The receiver does not exist");
 
-        // 1. 验证申请者用户是否存在
+        // 1. Check that the requester exists
         User applicant = userService.getById(friendId);
-        ThrowUtils.throwIf(applicant == null, ErrorCode.NOT_FOUND_ERROR, "好友申请者不存在");
+        ThrowUtils.throwIf(applicant == null, ErrorCode.NOT_FOUND_ERROR, "The requester does not exist");
 
-        // 2. 检查是否已是好友关系
+        // 2. Check whether they are already friends
         boolean exists = this.lambdaQuery()
                 .eq(Friend::getUserId, recipient.getUserId())
                 .eq(Friend::getFriendId, friendId)
                 .exists();
-        ThrowUtils.throwIf(exists, ErrorCode.OPERATION_ERROR, "已经是好友关系");
+        ThrowUtils.throwIf(exists, ErrorCode.OPERATION_ERROR, "You are already friends");
 
-        // 3. 创建双向好友关系
+        // 3. Create both directions of the friendship
         createFriendRelations(recipient.getUserId(), friendId);
 
-        // 4. 创建会话
+        // 4. Create the session
         Long sessionId = createSession();
 
-        // 5. 创建用户会话关系
+        // 5. Create the user-session rows
         createUserSessions(recipient.getUserId(), friendId, sessionId);
 
-        // 6. 通知申请方有新会话
+        // 6. Tell the requester about the new session
         sendNewSessionNotification(friendId, recipient, sessionId);
 
-        // 7. 构建响应对象
+        // 7. Build the response
         return buildModifyFriendApplicationResponse(applicant, sessionId);
     }
 
     /**
-     * 创建双向好友关系
+     * Creates both directions of the friendship
      *
-     * @param userId   当前用户ID
-     * @param friendId 好友ID
+     * @param userId   the current user's id
+     * @param friendId the friend's id
      */
     private void createFriendRelations(Long userId, Long friendId) {
         Friend friend1 = new Friend();
@@ -746,17 +746,17 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         friend2.setCreatedTime(LocalDateTime.now());
         friend2.setUpdatedTime(LocalDateTime.now());
 
-        // Friend 使用复合主键，save() 会走 updateById 分支而失效，必须直接用 mapper.insert()
+        // Friend has a composite primary key, so save() takes the updateById branch and does nothing; mapper.insert() must be used directly
         int inserted1 = friendMapper.insert(friend1);
         int inserted2 = friendMapper.insert(friend2);
 
-        ThrowUtils.throwIf(inserted1 <= 0 || inserted2 <= 0, ErrorCode.SYSTEM_ERROR, "添加好友关系失败");
+        ThrowUtils.throwIf(inserted1 <= 0 || inserted2 <= 0, ErrorCode.SYSTEM_ERROR, "Failed to create the friendship");
     }
 
     /**
-     * 创建单聊会话
+     * Creates the one-to-one session
      *
-     * @return 会话ID
+     * @return the session id
      */
     private Long createSession() {
         Long sessionId = SnowflakeUtil.nextId();
@@ -769,17 +769,17 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         session.setUpdatedTime(new Date());
 
         boolean sessionSaved = sessionService.save(session);
-        ThrowUtils.throwIf(!sessionSaved, ErrorCode.SYSTEM_ERROR, "创建会话失败");
+        ThrowUtils.throwIf(!sessionSaved, ErrorCode.SYSTEM_ERROR, "Failed to create the session");
 
         return sessionId;
     }
 
     /**
-     * 创建双方的用户会话关系
+     * Creates the user-session rows for both users
      *
-     * @param userId    当前用户ID
-     * @param friendId  好友ID
-     * @param sessionId 会话ID
+     * @param userId    the current user's id
+     * @param friendId  the friend's id
+     * @param sessionId the session id
      */
     private void createUserSessions(Long userId, Long friendId, Long sessionId) {
         UserSession userSession1 = new UserSession();
@@ -801,17 +801,17 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
         boolean saved1 = userSessionService.save(userSession1);
         boolean saved2 = userSessionService.save(userSession2);
 
-        ThrowUtils.throwIf(!saved1 || !saved2, ErrorCode.SYSTEM_ERROR, "创建用户会话关系失败");
+        ThrowUtils.throwIf(!saved1 || !saved2, ErrorCode.SYSTEM_ERROR, "Failed to create the user-session rows");
     }
 
     /**
-     * 发送新会话通知（通过Kafka）
+     * Publishes the new-session notification over Kafka
      * <p>
-     * 通知失败不影响好友关系的建立，仅记录日志。
+     * A failed notification does not undo the friendship; it is only logged.
      *
-     * @param recipientId 接收通知的用户ID（发起申请的一方）
-     * @param sender      同意申请的一方
-     * @param sessionId   会话ID
+     * @param recipientId the id of the user receiving the notification (the party who made the request)
+     * @param sender      the party who accepted the request
+     * @param sessionId   the session id
      */
     private void sendNewSessionNotification(Long recipientId, User sender, Long sessionId) {
         try {
@@ -821,19 +821,19 @@ public class FriendServiceImpl extends ServiceImpl<FriendMapper, Friend> impleme
 
             notificationService.pushNewSession(sender.getUserId(), recipientId, sessionId,
                     SessionTypeConstant.SIGNAL_TYPE, notification);
-            log.info("发送新会话通知成功，接收者ID：{}，会话ID：{}", recipientId, sessionId);
+            log.info("New-session notification published, receiver id: {}, session id: {}", recipientId, sessionId);
         } catch (Exception e) {
-            log.warn("发送新会话通知失败，接收者ID：{}，会话ID：{}，原因：{}",
+            log.warn("Failed to publish the new-session notification, receiver id: {}, session id: {}, cause: {}",
                     recipientId, sessionId, e.getMessage());
         }
     }
 
     /**
-     * 构建通过好友申请的响应对象
+     * Builds the response returned when a friend request is accepted
      *
-     * @param applicant 申请者
-     * @param sessionId 会话ID
-     * @return 响应对象
+     * @param applicant the requester
+     * @param sessionId the session id
+     * @return the response
      */
     private ModifyFriendApplicationResponse buildModifyFriendApplicationResponse(User applicant, Long sessionId) {
         ModifyFriendApplicationResponse response = new ModifyFriendApplicationResponse();

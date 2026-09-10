@@ -75,7 +75,7 @@ export interface OfflineSession {
   sessionType: number
   sessionId: EntityId
   senderId: EntityId
-  /** 单聊对方用户 ID（前端补充） */
+  /** The other party's user id in a one-to-one chat (filled in on the client). */
   peerId?: EntityId
   avatar: string
   name: string

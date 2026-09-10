@@ -15,13 +15,13 @@ spring:
       timeout: 30000
       lettuce:
         pool:
-          # 链接池中最小的空闲链接 默认为 0
+          # Minimum number of idle connections in the pool; defaults to 0
           min-idle: 4
-          # 链接池中最大的空闲连接 默认为 8
+          # Maximum number of idle connections in the pool; defaults to 8
           max-idle: 8
-          #连接池中最大数据库链接数 默认为 8
+          # Maximum number of database connections in the pool; defaults to 8
           max-active: 8
-          #连接池最大阻塞等待时间
+          # Maximum time the pool will block waiting for a connection
           max-wait: 5000ms
   mail:
     host: smtp.gmail.com
@@ -73,7 +73,7 @@ minio:
   access-key: minioadmin
   secret-key: minioadmin
 
-# Snowflake ID生成器配置
+# Snowflake ID generator configuration
 snowflake:
   workerId: 1
   datacenterId: 1

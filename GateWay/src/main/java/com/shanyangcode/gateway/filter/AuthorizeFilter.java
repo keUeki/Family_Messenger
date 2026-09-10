@@ -33,7 +33,7 @@ public class AuthorizeFilter implements GlobalFilter, Ordered {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    // 白名单路径：不需要认证的接口
+    // Allowlisted paths: endpoints that do not require authentication
     private static final List<String> EXCLUDE_PATHS = Arrays.asList(
             "/api/user/login/code",
             "/api/user/register",
@@ -47,22 +47,22 @@ public class AuthorizeFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
 
-        // CORS 预检请求不携带鉴权头，直接放行交给 CORS 过滤器处理
+        // CORS preflight requests carry no auth header; let the CORS filter handle them
         if (HttpMethod.OPTIONS.equals(request.getMethod())) {
             return chain.filter(exchange);
         }
 
-        // 白名单路径直接放行
+        // Allowlisted paths pass straight through
         if (EXCLUDE_PATHS.stream().anyMatch(path::startsWith)) {
             return chain.filter(exchange);
         }
 
-        // 获取 Access-Token 和 Refresh-Token
+        // Read the Access-Token and Refresh-Token
         String accessToken = request.getHeaders().getFirst("Access-Token");
         String refreshToken = request.getHeaders().getFirst("Refresh-Token");
 
         try {
-            // 1. 尝试用 Access-Token 验证
+            // 1. Try to authenticate with the Access-Token
             if (accessToken != null && !accessToken.isEmpty()) {
                 Claims acClaims = JwtUtil.parse(accessToken);
                 if (acClaims != null) {
@@ -70,13 +70,13 @@ public class AuthorizeFilter implements GlobalFilter, Ordered {
                     String redisAccessToken = stringRedisTemplate.opsForValue()
                             .get(CommonConstant.ACCESS_TOKEN_PREFIX + userId);
                     if (accessToken.equals(redisAccessToken)) {
-                        // Token 合法，放行
+                        // Token is valid; let the request through
                         return chain.filter(exchange);
                     }
                 }
             }
 
-            // 2. 如果 Access-Token 无效，尝试用 Refresh-Token 判断是否需要刷新
+            // 2. If the Access-Token is invalid, use the Refresh-Token to decide whether a refresh is needed
             if (refreshToken != null && !refreshToken.isEmpty()) {
                 Claims rfClaims = JwtUtil.parse(refreshToken);
                 if (rfClaims != null) {
@@ -84,23 +84,23 @@ public class AuthorizeFilter implements GlobalFilter, Ordered {
                     String redisRefreshToken = stringRedisTemplate.opsForValue()
                             .get(CommonConstant.REFRESH_TOKEN_PREFIX + userId);
                     if (refreshToken.equals(redisRefreshToken)) {
-                        // Refresh-Token 有效，但 Access-Token 已失效 → 触发前端刷新
+                        // Refresh-Token is valid but the Access-Token has expired -> ask the client to refresh
                         return buildErrorResponse(exchange, ErrorCode.TOKEN_EXPIRED);
                     }
                 }
             }
 
-            // 3. 两者都无效 → 未登录
+            // 3. Neither is valid -> not logged in
             return buildErrorResponse(exchange, ErrorCode.NOT_LOGIN_ERROR);
 
         } catch (Exception e) {
-            log.error("JWT 校验系统异常", e);
-            return buildErrorResponse(exchange, ErrorCode.SYSTEM_ERROR, "登录状态确认失败");
+            log.error("Unexpected error while validating the JWT", e);
+            return buildErrorResponse(exchange, ErrorCode.SYSTEM_ERROR, "Could not confirm the login state");
         }
     }
 
     /**
-     * 构建错误响应（通用）
+     * Builds a generic error response
      */
     private Mono<Void> buildErrorResponse(ServerWebExchange exchange, ErrorCode errorCode) {
         return buildErrorResponse(exchange, errorCode, errorCode.getMessage());
@@ -113,12 +113,12 @@ public class AuthorizeFilter implements GlobalFilter, Ordered {
                 .wrap(jsonResponse.getBytes(StandardCharsets.UTF_8));
 
         exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED); // 或根据 errorCode 映射 HttpStatus
+        exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED); // or map the errorCode onto an HttpStatus
         return exchange.getResponse().writeWith(Mono.just(buffer));
     }
 
     @Override
     public int getOrder() {
-        return -1; // 优先级较高
+        return -1; // fairly high precedence
     }
 }

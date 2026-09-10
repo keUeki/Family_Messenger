@@ -30,7 +30,7 @@ export function ProfilePage() {
     try {
       await refreshProfile()
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '加载失败')
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load')
     }
   }
 
@@ -44,9 +44,9 @@ export function ProfilePage() {
       const url = await uploadFile(file, (name) => userApi.getUploadUrl(name))
       await userApi.updateAvatar(userId, url)
       updateProfile({ avatar: url })
-      toast.success('头像已更新')
+      toast.success('Avatar updated')
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : '上传失败，请检查 MinIO CORS')
+      toast.error(e instanceof Error ? e.message : 'Upload failed, check the MinIO CORS settings')
     } finally {
       setUploading(false)
     }
@@ -56,8 +56,8 @@ export function ProfilePage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <span className={styles.eyebrow}>YOUR SPACE</span>
-        <h2>账户概览</h2>
-        <p>管理个人资料、安全设置与实时连接。</p>
+        <h2>Account overview</h2>
+        <p>Manage your profile, security settings and realtime connection.</p>
       </div>
 
       <section className={styles.hero}>
@@ -75,7 +75,7 @@ export function ProfilePage() {
               </span>
             ) : null}
           </span>
-          <span>更换头像</span>
+          <span>Change avatar</span>
         </button>
         <input
           ref={fileRef}
@@ -90,13 +90,13 @@ export function ProfilePage() {
         />
         <div>
           <span className={styles.profileLabel}>INFINITECHAT MEMBER</span>
-          <h3>{profile.nickname || 'InfiniteChat 用户'}</h3>
+          <h3>{profile.nickname || 'InfiniteChat user'}</h3>
           <p>@{profile.account || userId}</p>
-          <p className={styles.desc}>{profile.description || '暂无简介'}</p>
+          <p className={styles.desc}>{profile.description || 'No bio yet'}</p>
         </div>
         <div className={styles.accountState}>
-          <span>账户状态</span>
-          <strong><i /> 正常</strong>
+          <span>Account status</span>
+          <strong><i /> Active</strong>
           <small>ID {userId}</small>
         </div>
       </section>
@@ -104,50 +104,50 @@ export function ProfilePage() {
       <div className={styles.contentGrid}>
 
       <section className={`${styles.panel} card-lift`}>
-        <div className={styles.panelTitle}><span>安全</span><h4>修改密码</h4><p>验证码确认后即可更新</p></div>
+        <div className={styles.panelTitle}><span>Security</span><h4>Change password</h4><p>Confirm with a verification code to update it</p></div>
         <div className={styles.form}>
           <Input
-            label="新密码"
+            label="New password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
           <Input
-            label="确认密码"
+            label="Confirm password"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
           <div className={styles.row}>
-            <Input label="验证码" value={code} onChange={(e) => setCode(e.target.value)} />
+            <Input label="Verification code" value={code} onChange={(e) => setCode(e.target.value)} />
             <Button
               variant="secondary"
               type="button"
               onClick={async () => {
                 if (!profile.account) {
-                  toast.warning('当前账户信息不完整')
+                  toast.warning('Your account details are incomplete')
                   return
                 }
                 try {
                   await userApi.sendCaptcha(profile.account)
-                  toast.success('验证码已生成，请注意查收')
+                  toast.success('A verification code has been sent, please check your inbox')
                 } catch (e) {
-                  toast.error(e instanceof ApiError ? e.message : '发送失败')
+                  toast.error(e instanceof ApiError ? e.message : 'Failed to send')
                 }
               }}
             >
-              获取验证码
+              Get a code
             </Button>
           </div>
           <Button
             loading={savingPwd}
             onClick={async () => {
               if (!password || !confirmPassword || !code) {
-                toast.warning('请完整填写密码和验证码')
+                toast.warning('Fill in both the password and the verification code')
                 return
               }
               if (password !== confirmPassword) {
-                toast.error('两次密码不一致')
+                toast.error('The two passwords do not match')
                 return
               }
               setSavingPwd(true)
@@ -158,24 +158,24 @@ export function ProfilePage() {
                   confirmPassword,
                   code,
                 })
-                toast.success('密码已更新')
+                toast.success('Password updated')
                 setPassword('')
                 setConfirmPassword('')
                 setCode('')
               } catch (e) {
-                toast.error(e instanceof ApiError ? e.message : '修改失败')
+                toast.error(e instanceof ApiError ? e.message : 'Failed to update')
               } finally {
                 setSavingPwd(false)
               }
             }}
           >
-            保存密码
+            Save password
           </Button>
         </div>
       </section>
 
       <section className={`${styles.panel} card-lift`}>
-        <div className={styles.panelTitle}><span>实时</span><h4>连接管理</h4><p>遇到消息延迟时可重新分配节点</p></div>
+        <div className={styles.panelTitle}><span>Realtime</span><h4>Connection</h4><p>Reassign the node if messages start lagging</p></div>
         <Button
           variant="secondary"
           onClick={async () => {
@@ -184,16 +184,16 @@ export function ProfilePage() {
               if (uri) {
                 setWsServerUri(uri)
                 window.setTimeout(() => connect(), 50)
-                toast.success('实时节点已刷新并重新连接')
+                toast.success('Realtime node refreshed and reconnected')
               } else {
-                toast.warning('未分配到实时节点')
+                toast.warning('No realtime node was assigned')
               }
             } catch (e) {
-              toast.error(e instanceof ApiError ? e.message : '刷新节点失败')
+              toast.error(e instanceof ApiError ? e.message : 'Failed to refresh the node')
             }
           }}
         >
-          重新连接实时通道
+          Reconnect the realtime channel
         </Button>
       </section>
       </div>

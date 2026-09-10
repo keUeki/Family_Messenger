@@ -8,7 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * 群成员数量响应DTO
+ * Group member count response DTO
  */
 @Data
 @NoArgsConstructor
@@ -19,7 +19,7 @@ public class GroupMemberCountResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 群成员数量
+     * Number of group members
      */
     private Integer memberCount;
 }

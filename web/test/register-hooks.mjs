@@ -1,4 +1,4 @@
-// 由 `node --import` 加载，为测试注册 `@` 别名解析与 import.meta.env 补丁。
+// Loaded via `node --import`; registers the `@` alias resolver and the import.meta.env patch for tests.
 import { register } from 'node:module'
 import { pathToFileURL } from 'node:url'
 

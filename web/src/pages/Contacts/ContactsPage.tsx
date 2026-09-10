@@ -31,7 +31,7 @@ export function ContactsPage() {
   const [keyword, setKeyword] = useState('')
   const [searchKey, setSearchKey] = useState('')
   const [searchResult, setSearchResult] = useState<FriendDetail | null>(null)
-  const [requestMsg, setRequestMsg] = useState('你好，交个朋友吧')
+  const [requestMsg, setRequestMsg] = useState('Hi, I would like to add you as a friend')
   const [detail, setDetail] = useState<FriendDetail | null>(null)
   const [tab, setTab] = useState<'friends' | 'applies'>('friends')
   const [loading, setLoading] = useState(false)
@@ -52,7 +52,7 @@ export function ContactsPage() {
       setApplies(a?.list || [])
       setApplyCount(typeof c === 'number' ? c : Number(c) || 0)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '加载失败')
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
@@ -65,7 +65,7 @@ export function ContactsPage() {
   const openChat = (friend: FriendDTO | FriendDetail) => {
     const sessionId = String(friend.sessionId || '')
     if (!/^\d+$/.test(sessionId) || sessionId === '0') {
-      toast.warning('暂无会话，请先成为好友')
+      toast.warning('There is no conversation yet; become friends first')
       return
     }
     upsertSession({
@@ -90,21 +90,21 @@ export function ContactsPage() {
     try {
       if (confirmKind === 'block') {
         await contactApi.blockFriend(userId, confirmTarget)
-        toast.info('已拉黑')
+        toast.info('Blocked')
         setDetail(null)
       } else if (confirmKind === 'delete') {
         await contactApi.deleteFriend(userId, confirmTarget)
-        toast.info('已删除')
+        toast.info('Removed')
         setDetail(null)
       } else if (confirmKind === 'reject') {
         await contactApi.modifyApplicationStatus(userId, '2', [confirmTarget])
-        toast.info('已拒绝')
+        toast.info('Declined')
       }
       setConfirmKind(null)
       setConfirmTarget(null)
       await reload()
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '操作失败')
+      toast.error(e instanceof ApiError ? e.message : 'The operation failed')
     } finally {
       setConfirmLoading(false)
     }
@@ -113,7 +113,7 @@ export function ContactsPage() {
   const searchUser = async () => {
     const value = searchKey.trim()
     if (!value) {
-      toast.warning('请输入手机号或邮箱')
+      toast.warning('Enter a phone number or email address')
       return
     }
     setSearching(true)
@@ -121,7 +121,7 @@ export function ContactsPage() {
       setSearchResult(await contactApi.searchUser(userId, value))
     } catch (e) {
       setSearchResult(null)
-      toast.error(e instanceof ApiError ? e.message : '未找到用户')
+      toast.error(e instanceof ApiError ? e.message : 'No such user')
     } finally {
       setSearching(false)
     }
@@ -132,18 +132,18 @@ export function ContactsPage() {
       <div className={styles.header}>
         <div>
           <span className={styles.eyebrow}>MY NETWORK</span>
-          <h2>你的联系人</h2>
-          <p>找到熟悉的人，也认识新的伙伴。</p>
+          <h2>Your contacts</h2>
+          <p>Find the people you know, and meet new ones.</p>
         </div>
         <SegmentedControl
-          ariaLabel="通讯录分类"
+          ariaLabel="Contact categories"
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'friends', label: '好友' },
+            { value: 'friends', label: 'Friends' },
             {
               value: 'applies',
-              label: applyCount > 0 ? `申请 (${applyCount})` : '申请',
+              label: applyCount > 0 ? `Requests (${applyCount})` : 'Requests',
             },
           ]}
         />
@@ -151,36 +151,36 @@ export function ContactsPage() {
 
       <div className={styles.searchPanel}>
         <div className={styles.searchIntro}>
-          <span>＋</span>
-          <div><strong>添加新朋友</strong><p>输入对方绑定的手机号或邮箱</p></div>
+          <span>+</span>
+          <div><strong>Add a new friend</strong><p>Enter the phone number or email address they signed up with</p></div>
         </div>
         <div className={styles.searchBar}>
           <Input
-            placeholder="手机号或邮箱"
+            placeholder="Phone number or email"
             value={searchKey}
             onChange={(e) => setSearchKey(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') void searchUser()
             }}
           />
-          <Button loading={searching} onClick={() => void searchUser()}>查找用户</Button>
+          <Button loading={searching} onClick={() => void searchUser()}>Find user</Button>
         </div>
       </div>
 
       {tab === 'friends' ? (
         <>
           <div className={styles.sectionHeading}>
-            <div><h3>好友</h3><span>{friends.length} 位联系人</span></div>
+            <div><h3>Friends</h3><span>{friends.length} contacts</span></div>
             <div className={styles.filter}>
               <Input
-                placeholder="筛选好友昵称"
+                placeholder="Filter by nickname"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') reload()
                 }}
               />
-              <Button variant="secondary" onClick={reload}>筛选</Button>
+              <Button variant="secondary" onClick={reload}>Filter</Button>
             </div>
           </div>
           {loading ? <SkeletonList rows={4} /> : null}
@@ -190,11 +190,11 @@ export function ContactsPage() {
                 <Avatar src={f.avatar} name={f.nickname} size={44} />
                 <div className={styles.meta}>
                   <strong>{f.nickname}</strong>
-                  <span>{f.signature || '这个人很懒，什么都没写'}</span>
+                  <span>{f.signature || 'This person has not written anything yet'}</span>
                 </div>
                 <div className={styles.actions}>
                   <Button variant="secondary" onClick={() => openChat(f)}>
-                    发消息
+                    Message
                   </Button>
                   <Button
                     variant="ghost"
@@ -202,24 +202,24 @@ export function ContactsPage() {
                       try {
                         setDetail(await contactApi.getFriendDetail(userId, f.userId))
                       } catch (e) {
-                        toast.error(e instanceof ApiError ? e.message : '加载详情失败')
+                        toast.error(e instanceof ApiError ? e.message : 'Failed to load the details')
                       }
                     }}
                   >
-                    详情
+                    Details
                   </Button>
                 </div>
               </div>
             ))}
             {!friends.length && !loading ? (
-              <EmptyState title="还没有好友" description="搜索账号，发出第一份好友申请吧。" />
+              <EmptyState title="No friends yet" description="Search for an account and send your first friend request." />
             ) : null}
           </div>
         </>
       ) : (
         <div className={styles.listBlock}>
           <div className={styles.sectionHeading}>
-            <div><h3>好友申请</h3><span>{applies.length} 条记录</span></div>
+            <div><h3>Friend requests</h3><span>{applies.length} records</span></div>
           </div>
           <div className={styles.list}>
           {applies.map((a) => (
@@ -236,14 +236,14 @@ export function ContactsPage() {
                     onClick={async () => {
                       try {
                         await contactApi.modifyApplicationStatus(userId, '1', [a.userId])
-                        toast.success('已同意好友申请')
+                        toast.success('Friend request accepted')
                         await reload()
                       } catch (e) {
-                        toast.error(e instanceof ApiError ? e.message : '操作失败')
+                        toast.error(e instanceof ApiError ? e.message : 'The operation failed')
                       }
                     }}
                   >
-                    同意
+                    Accept
                   </Button>
                   <Button
                     variant="danger"
@@ -252,38 +252,38 @@ export function ContactsPage() {
                       setConfirmTarget(a.userId)
                     }}
                   >
-                    拒绝
+                    Decline
                   </Button>
                 </div>
               ) : (
-                <span className={styles.muted}>等待对方处理</span>
+                <span className={styles.muted}>Waiting for them to respond</span>
               )}
             </div>
           ))}
-          {!applies.length ? <EmptyState title="暂无好友申请" /> : null}
+          {!applies.length ? <EmptyState title="No friend requests" /> : null}
           </div>
         </div>
       )}
 
       <Modal
         open={Boolean(searchResult)}
-        title="找到用户"
+        title="User found"
         onClose={() => setSearchResult(null)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setSearchResult(null)}>
-              取消
+              Cancel
             </Button>
             <Button
               onClick={async () => {
                 if (!searchResult) return
                 await contactApi.sendFriendRequest(userId, searchResult.userId, requestMsg)
-                toast.success('申请已发送')
+                toast.success('Request sent')
                 setSearchResult(null)
                 await reload()
               }}
             >
-              发送申请
+              Send request
             </Button>
           </>
         }
@@ -292,9 +292,9 @@ export function ContactsPage() {
           <div className={styles.detail}>
             <Avatar src={searchResult.avatar} name={searchResult.nickname} size={64} />
             <h3>{searchResult.nickname}</h3>
-            <p>{searchResult.signature || '暂无签名'}</p>
+            <p>{searchResult.signature || 'No bio yet'}</p>
             <TextArea
-              label="申请留言"
+              label="Request message"
               value={requestMsg}
               onChange={(e) => setRequestMsg(e.target.value)}
             />
@@ -302,14 +302,14 @@ export function ContactsPage() {
         ) : null}
       </Modal>
 
-      <Modal open={Boolean(detail)} title="好友详情" onClose={() => setDetail(null)} width={420}>
+      <Modal open={Boolean(detail)} title="Friend details" onClose={() => setDetail(null)} width={420}>
         {detail ? (
           <div className={styles.detail}>
             <Avatar src={detail.avatar} name={detail.nickname} size={72} />
             <h3>{detail.nickname}</h3>
-            <p>{detail.signature || '暂无签名'}</p>
+            <p>{detail.signature || 'No bio yet'}</p>
             <div className={styles.actions}>
-              <Button onClick={() => openChat(detail)}>发消息</Button>
+              <Button onClick={() => openChat(detail)}>Message</Button>
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -317,7 +317,7 @@ export function ContactsPage() {
                   setConfirmTarget(detail.userId)
                 }}
               >
-                拉黑
+                Block
               </Button>
               <Button
                 variant="danger"
@@ -326,7 +326,7 @@ export function ContactsPage() {
                   setConfirmTarget(detail.userId)
                 }}
               >
-                删除
+                Remove
               </Button>
             </div>
           </div>
@@ -337,17 +337,17 @@ export function ContactsPage() {
         open={Boolean(confirmKind)}
         title={
           confirmKind === 'block'
-            ? '确认拉黑？'
+            ? 'Block this person?'
             : confirmKind === 'delete'
-              ? '确认删除好友？'
-              : '确认拒绝申请？'
+              ? 'Remove this friend?'
+              : 'Decline this request?'
         }
         description={
           confirmKind === 'block'
-            ? '拉黑后将无法互相发消息。'
+            ? 'Once blocked, neither of you can message the other.'
             : confirmKind === 'delete'
-              ? '删除后会话可能仍保留，需重新加好友。'
-              : '拒绝后对方将收到处理结果。'
+              ? 'The conversation may remain, but you will have to add them again.'
+              : 'They will be told that the request was declined.'
         }
         danger
         loading={confirmLoading}

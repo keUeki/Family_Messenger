@@ -38,16 +38,16 @@ public class CanalClient implements CommandLineRunner {
     @Resource
     private StringRedisTemplate stringRedisTemplate;
 
-    private static final int MAX_RETRY_TIMES = 5; // 发生错误后最大重试次数
+    private static final int MAX_RETRY_TIMES = 5; // Maximum number of retries after an error
 
-    private static final long INITIAL_RETRY_DELAY = 1000; // 初始重试延迟1秒
+    private static final long INITIAL_RETRY_DELAY = 1000; // Initial retry delay: 1 second
 
-    private static final long MAX_RETRY_DELAY = 60000; // 最大重试延迟60秒
+    private static final long MAX_RETRY_DELAY = 60000; // Maximum retry delay: 60 seconds
 
-    private static final long HEARTBEAT_INTERVAL = 30000; // 30秒发送一次心跳
+    private static final long HEARTBEAT_INTERVAL = 30000; // Send a heartbeat every 30 seconds
 
-    private static final long IDLE_CHECK_INTERVAL = 5000; // 5秒检查一次空闲状态
-    // 需要监听的表名集合（全部小写，MySQL 的库名/表名大小写在不同平台上不一致）
+    private static final long IDLE_CHECK_INTERVAL = 5000; // Check the idle state every 5 seconds
+    // Tables to watch (all lower-case; MySQL schema/table case sensitivity differs across platforms)
     private static final Set<String> MONITOR_TABLES = Set.of("infinitechat.message");
 
     @Override
@@ -57,7 +57,7 @@ public class CanalClient implements CommandLineRunner {
 
 
     private void process() {
-        log.info("====== Canal 消费线程已启动 ======");
+        log.info("====== Canal consumer thread started ======");
 
         int batchSize = 1000;
         int retryTimes = 0;
@@ -66,7 +66,7 @@ public class CanalClient implements CommandLineRunner {
 
         while (true) {
             try {
-                // 检查连接状态
+                // Check the connection state
                 if (!canalConnector.checkValid()) {
                     reconnectCanal();
                     retryTimes = 0;
@@ -74,7 +74,7 @@ public class CanalClient implements CommandLineRunner {
                     lastActiveTime = System.currentTimeMillis();
                 }
 
-                // 检查是否需要发送心跳
+                // Check whether a heartbeat is due
                 long currentTime = System.currentTimeMillis();
                 if (currentTime - lastActiveTime > HEARTBEAT_INTERVAL) {
                     sendHeartbeat();
@@ -87,12 +87,12 @@ public class CanalClient implements CommandLineRunner {
                 int size = message.getEntries().size();
 
                 if (batchId == -1 || size == 0) {
-                    // 没有数据时短暂休眠，避免CPU空转
+                    // Sleep briefly when there is no data, to avoid spinning the CPU
                     Thread.sleep(IDLE_CHECK_INTERVAL);
                     continue;
                 }
 
-                lastActiveTime = System.currentTimeMillis(); // 更新最后活跃时间
+                lastActiveTime = System.currentTimeMillis(); // Update the last-active timestamp
 
                 try {
                     handleMessage(message.getEntries());
@@ -100,16 +100,16 @@ public class CanalClient implements CommandLineRunner {
                     retryTimes = 0;
                     retryDelay = INITIAL_RETRY_DELAY;
                 } catch (Exception e) {
-                    log.error("处理消息内容出错，尝试回滚", e);
+                    log.error("Error while processing the message payload, rolling back", e);
                     safeRollback(batchId);
                     throw e;
                 }
 
             } catch (Exception e) {
-                log.error("处理canal消息出错", e);
+                log.error("Error while processing the Canal message", e);
 
                 if (retryTimes++ >= MAX_RETRY_TIMES) {
-                    log.error("达到最大重试次数{}，等待后重新尝试", MAX_RETRY_TIMES);
+                    log.error("Reached the maximum of {} retries, waiting before trying again", MAX_RETRY_TIMES);
                     retryTimes = 0;
                     try {
                         Thread.sleep(MAX_RETRY_DELAY);
@@ -120,7 +120,7 @@ public class CanalClient implements CommandLineRunner {
                 }
 
                 long sleepTime = Math.min(retryDelay * 2, MAX_RETRY_DELAY);
-                log.warn("{}秒后尝试第{}次重连...", sleepTime / 1000, retryTimes);
+                log.warn("Reconnecting in {} second(s), attempt {}...", sleepTime / 1000, retryTimes);
                 try {
                     Thread.sleep(sleepTime);
                 } catch (InterruptedException ex) {
@@ -133,21 +133,21 @@ public class CanalClient implements CommandLineRunner {
 
 
     /**
-     * 发送心跳保持连接
+     * Sends a heartbeat to keep the connection alive
      */
     private void sendHeartbeat() {
         try {
-            // 发送空ack作为心跳
+            // Send an empty ack as the heartbeat
             canalConnector.ack(-1);
-            log.debug("发送心跳保持连接");
+            log.debug("Sent a heartbeat to keep the connection alive");
         } catch (Exception e) {
-            log.error("发送心跳失败", e);
+            log.error("Failed to send the heartbeat", e);
             try {
                 if (canalConnector.checkValid()) {
                     canalConnector.disconnect();
                 }
             } catch (Exception ex) {
-                log.error("断开连接出错", ex);
+                log.error("Error while disconnecting", ex);
             }
         }
     }
@@ -157,9 +157,9 @@ public class CanalClient implements CommandLineRunner {
             canalConnector.disconnect();
             canalConnector.connect();
             canalConnector.subscribe();
-            log.info("成功重新连接到Canal服务器");
+            log.info("Reconnected to the Canal server");
         } catch (Exception e) {
-            log.error("连接Canal服务器失败", e);
+            log.error("Failed to connect to the Canal server", e);
             throw e;
         }
     }
@@ -168,13 +168,13 @@ public class CanalClient implements CommandLineRunner {
         try {
             canalConnector.rollback(batchId);
         } catch (Exception ex) {
-            log.error("回滚canal消息出错", ex);
+            log.error("Error while rolling back the Canal message", ex);
             try {
                 if (canalConnector.checkValid()) {
                     canalConnector.disconnect();
                 }
             } catch (Exception e) {
-                log.error("断开连接出错", e);
+                log.error("Error while disconnecting", e);
             }
         }
     }
@@ -190,22 +190,22 @@ public class CanalClient implements CommandLineRunner {
             try {
                 rowChange = CanalEntry.RowChange.parseFrom(entry.getStoreValue());
             } catch (Exception e) {
-                throw new RuntimeException("解析binlog事件错误", e);
+                throw new RuntimeException("Failed to parse the binlog event", e);
             }
 
             String schemaName = entry.getHeader().getSchemaName();
             String tableName = entry.getHeader().getTableName();
             String fullTableName = schemaName + "." + tableName;
 
-            log.info("====== 收到变更: fullTableName={} ======", fullTableName);
+            log.info("====== Change received: fullTableName={} ======", fullTableName);
 
-            // binlog 中的库名为 InfiniteChat，与配置的小写表名对比时必须忽略大小写，
-            // 否则所有消息变更都会被丢弃，Redis 热数据永远为空，历史消息也就查不到。
+            // The schema name in the binlog is InfiniteChat, so the comparison against the lower-case
+            // configured table names must be case-insensitive; otherwise every change is dropped, the Redis hot cache stays empty and history queries return nothing.
             if (!MONITOR_TABLES.contains(fullTableName.toLowerCase(Locale.ROOT))) {
                 continue;
             }
 
-            System.out.println("表名：" + tableName);
+            System.out.println("Table name: " + tableName);
             CanalEntry.EventType eventType = rowChange.getEventType();
 
             log.info("======> binlog[{}:{}], name[{},{}], eventType: {}", entry.getHeader().getLogfileName(), entry.getHeader().getLogfileOffset(), schemaName, tableName, eventType);
@@ -221,17 +221,17 @@ public class CanalClient implements CommandLineRunner {
     }
 
 
-    // 在你的 Canal 处理方法中
+    // Inside the Canal handling method
     private void handleInsert(List<CanalEntry.Column> columns, String tableName) {
         Map<String, String> map = new HashMap<>();
         for (CanalEntry.Column column : columns) {
             map.put(column.getName(), column.getValue());
         }
-        log.info("表名：{}，数据：{}", tableName, map);
+        log.info("Table name: {}, row: {}", tableName, map);
 
-        // 1. 构建完整的消息对象
+        // 1. Build the complete message object
         MessageResponse messageResponse = buildMessageFromMap(map);
-        log.info("消息体：{}", messageResponse);
+        log.info("Message body: {}", messageResponse);
         storeMessageToRedis(messageResponse);
 
     }
@@ -246,7 +246,7 @@ public class CanalClient implements CommandLineRunner {
         messageResponse.setSessionType(Integer.valueOf(map.get("session_type")));
         messageResponse.setCreatedTime(map.get("created_time"));
 
-        // 根据消息类型解析 content
+        // Parse the content according to the message type
         MessageBody body = new MessageBody();
         body.setContent(map.get("content"));
         if (StringUtils.isEmpty(map.get("reply_id"))) {
@@ -280,19 +280,19 @@ public class CanalClient implements CommandLineRunner {
                 @SuppressWarnings("NullableProblems")
                 public <K, V> Object execute(RedisOperations<K, V> operations) throws DataAccessException {
                     StringRedisTemplate template = (StringRedisTemplate) operations;
-                    // 写入消息
+                    // Write the message
                     template.opsForZSet().add(key, messageJson, score);
-                    // 清理 7 天前的数据
+                    // Purge data older than 7 days
                     template.opsForZSet().removeRangeByScore(key, 0, cutoff);
                     return null;
                 }
             });
 
-            log.debug("消息已存入Redis, sessionId={}, messageId={}",
+            log.debug("Message stored in Redis, sessionId={}, messageId={}",
                     messageResponse.getSessionId(), messageResponse.getMessageId());
 
         } catch (Exception e) {
-            log.error("存储消息到Redis失败, sessionId={}, messageId={}",
+            log.error("Failed to store the message in Redis, sessionId={}, messageId={}",
                     messageResponse.getSessionId(), messageResponse.getMessageId(), e);
         }
     }

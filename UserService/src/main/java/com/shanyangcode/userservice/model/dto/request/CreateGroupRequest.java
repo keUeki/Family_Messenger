@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
- * 创建群聊请求DTO
+ * Create-group request DTO
  */
 @Data
 public class CreateGroupRequest implements Serializable {
@@ -17,14 +17,14 @@ public class CreateGroupRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 创建者用户ID
+     * Creator's user id
      */
-    @NotNull(message = "创建者ID不能为空")
+    @NotNull(message = "Creator id must not be null")
     private Long creatorId;
 
     /**
-     * 成员用户ID列表
+     * Member user ids
      */
-    @NotNull(message = "成员ID列表不能为空")
+    @NotNull(message = "Member id list must not be null")
     private List<Long> memberIds;
 }

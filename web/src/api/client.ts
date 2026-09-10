@@ -43,18 +43,18 @@ function parseApiError(data: unknown, httpStatus?: number): { code: number; mess
       const code = typeof envelope.legacyCode === 'number' ? envelope.legacyCode : httpStatus ?? -1
       return {
         code,
-        message: envelope.message || '请求失败',
+        message: envelope.message || 'Request failed',
         canonicalCode: envelope.code,
       }
     }
     if (isBaseResponse(data)) {
-      return { code: data.code, message: data.message || '请求失败' }
+      return { code: data.code, message: data.message || 'Request failed' }
     }
     if (typeof envelope.code === 'number') {
-      return { code: envelope.code, message: envelope.message || '请求失败' }
+      return { code: envelope.code, message: envelope.message || 'Request failed' }
     }
   }
-  return { code: httpStatus ?? -1, message: '请求失败' }
+  return { code: httpStatus ?? -1, message: 'Request failed' }
 }
 
 const AUTH_REFRESH_LEGACY_CODES = new Set([40100, 40102, 40103])
@@ -176,7 +176,7 @@ http.interceptors.response.use(
     const body = response.data
     if (isBaseResponse(body)) {
       if (body.code !== 200) {
-        return Promise.reject(new ApiError(body.code, body.message || '请求失败'))
+        return Promise.reject(new ApiError(body.code, body.message || 'Request failed'))
       }
       return { ...response, data: body }
     }
@@ -200,7 +200,7 @@ http.interceptors.response.use(
       }
       notifyAuthExpired()
     }
-    const msg = parsed.message || error.message || '网络异常，请稍后重试'
+    const msg = parsed.message || error.message || 'Network error, please try again shortly'
     return Promise.reject(new ApiError(parsed.code, msg, parsed.canonicalCode))
   },
 )

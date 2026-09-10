@@ -4,26 +4,26 @@ import com.shanyangcode.userservice.model.dto.request.InviteGroupRequest;
 import com.shanyangcode.userservice.model.dto.response.InviteGroupResponse;
 
 /**
- * 群组服务接口
+ * Group service
  *
- * 功能说明：
- * - 处理群组邀请相关业务
+ * Responsibilities:
+ * - Handles group invitations
  */
 public interface GroupService {
 
     /**
-     * 邀请用户加入群聊
+     * Invites users to join a group chat
      *
-     * 处理流程：
-     * 1. 验证会话存在且为群聊类型
-     * 2. 验证邀请者权限（必须是群主或管理员）
-     * 3. 验证被邀请者都是邀请者的好友
-     * 4. 检查被邀请者是否已在群中
-     * 5. 创建UserSession记录
-     * 6. 发送Kafka通知
+     * Processing steps:
+     * 1. Check that the session exists and is a group chat
+     * 2. Check the inviter's permission (they must be the owner or an admin)
+     * 3. Check that every invitee is a friend of the inviter
+     * 4. Check whether an invitee is already in the group
+     * 5. Create the UserSession rows
+     * 6. Publish the Kafka notifications
      *
-     * @param request 邀请请求参数
-     * @return 邀请结果（成功列表、失败列表）
+     * @param request the invitation request
+     * @return the outcome (the successes and the failures)
      */
     InviteGroupResponse inviteGroup(InviteGroupRequest request);
 }

@@ -13,7 +13,7 @@ import java.util.List;
 
 
 /**
- * 自动加载文档
+ * Loads the RAG documents at startup
  */
 @Component
 @Slf4j
@@ -27,19 +27,19 @@ public class RagDataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        log.info("RAG - 开始加载本地基础文档，路径: {}", docsPath);
+        log.info("RAG - loading the local base documents, path: {}", docsPath);
         try {
 
             List<Document> documents = FileSystemDocumentLoader.loadDocuments(docsPath);
 
             if (!documents.isEmpty()) {
                 embeddingStoreIngestor.ingest(documents);
-                log.info("RAG - 本地文档加载完成，共加载 {} 个文档", documents.size());
+                log.info("RAG - finished loading the local documents; {} document(s) loaded", documents.size());
             } else {
-                log.warn("RAG - 指定路径下未发现文档");
+                log.warn("RAG - no documents found at the configured path");
             }
         } catch (Exception e) {
-            log.error("RAG - 加载本地文档失败", e);
+            log.error("RAG - failed to load the local documents", e);
         }
     }
 }

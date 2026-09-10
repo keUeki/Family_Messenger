@@ -6,16 +6,16 @@ import com.shanyangcode.userservice.model.entity.Friend;
 import org.apache.ibatis.annotations.Mapper;
 
 /**
- * 好友关系Mapper接口
+ * Friendship mapper
  *
- * 功能说明：
- * - 继承MyBatis-Plus的BaseMapper，自动提供CRUD方法
- * - Friend表使用复合主键(user_id, friend_id)
- * - 无需编写XML配置或自定义SQL
- * - 复杂查询在Service层使用Lambda Wrapper实现
+ * Notes:
+ * - Extends MyBatis-Plus BaseMapper, which supplies the CRUD methods
+ * - The friend table uses the composite primary key (user_id, friend_id)
+ * - No XML mapping or hand-written SQL is required
+ * - Complex queries are expressed with lambda wrappers in the service layer
  */
 @Mapper
 public interface FriendMapper extends BaseMapper<Friend> {
-    // MyBatis-Plus已提供所有基础CRUD方法
-    // 复杂查询使用Lambda Wrapper在Service层实现
+    // MyBatis-Plus already provides every basic CRUD method
+    // Complex queries are expressed with lambda wrappers in the service layer
 }

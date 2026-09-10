@@ -10,84 +10,84 @@ import com.shanyangcode.userservice.model.vo.FriendDetailVO;
 import com.shanyangcode.common.model.dto.PageRequest;
 
 /**
- * 好友服务接口
+ * Friend service
  *
- * 功能说明：
- * - 管理好友关系的完整生命周期
- * - 支持添加、删除、拉黑好友等操作
- * - 提供好友列表查询和详情查询功能
+ * Responsibilities:
+ * - Manages the whole life cycle of a friendship
+ * - Supports adding, removing and blocking friends
+ * - Provides friend list and friend detail lookups
  */
 public interface FriendService extends IService<Friend> {
 
     /**
-     * 根据关键字搜索用户（自动识别手机号或邮箱）
+     * Searches for a user by keyword, detecting whether it is a phone number or an email address
      *
-     * @param userId  当前用户ID
-     * @param keyword 搜索关键字（手机号或邮箱）
-     * @return FriendDetailVO 对象
+     * @param userId  the current user's id
+     * @param keyword the search term (phone number or email address)
+     * @return the FriendDetailVO
      */
     FriendDetailVO searchUserByKeyword(String userId, String keyword);
 
     /**
-     * 获取好友的详细信息
+     * Returns a friend's details
      *
-     * @param userId   当前用户Id
-     * @param friendId 好友Id
-     * @return FriendDetailVO 对象
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return the FriendDetailVO
      */
     FriendDetailVO getFriendDetails(String userId, String friendId);
 
     /**
-     * 获取用户的好友列表
+     * Returns the user's friend list
      *
-     * 支持分页和关键字搜索
+     * Supports pagination and keyword search
      *
-     * @param userId      用户ID
-     * @param pageRequest 分页参数
-     * @param key         搜索关键字
-     * @return 分页的好友DTO列表
+     * @param userId      the user id
+     * @param pageRequest the pagination parameters
+     * @param key         the search term
+     * @return a page of friend DTOs
      */
     IPage<FriendDTO> getFriends(String userId, PageRequest pageRequest, String key);
 
     /**
-     * 删除好友
+     * Removes a friend
      * <p>
-     * 删除双向好友关系、相关的好友申请记录、单聊会话，并清除双向好友状态缓存。
+     * Deletes both directions of the friendship, the related friend request rows and the one-to-one session, and clears the friendship-status cache in both directions.
      *
-     * @param userId   当前用户ID
-     * @param friendId 好友ID
-     * @return 是否成功
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return whether the operation succeeded
      */
     boolean deleteFriend(Long userId, Long friendId);
 
     /**
-     * 拉黑好友
+     * Blocks a friend
      * <p>
-     * 只修改当前用户方向的关系状态，并清除双向好友状态缓存。
+     * Only changes the current user's side of the relation, then clears the friendship-status cache in both directions.
      *
-     * @param userId   当前用户ID
-     * @param friendId 好友ID
-     * @return 是否成功
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return whether the operation succeeded
      */
     boolean blockFriend(Long userId, Long friendId);
 
     /**
-     * 取消拉黑好友
+     * Unblocks a friend
      *
-     * @param userId   当前用户ID
-     * @param friendId 好友ID
-     * @return 是否成功
+     * @param userId   the current user's id
+     * @param friendId the friend's id
+     * @return whether the operation succeeded
      */
     boolean unblockFriend(Long userId, Long friendId);
 
     /**
-     * 建立好友关系（好友申请通过时调用）
+     * Establishes a friendship; called when a friend request is accepted
      * <p>
-     * 创建双向好友关系、单聊会话与用户会话关系，并通过Kafka通知申请方。
+     * Creates both directions of the friendship, the one-to-one session and the user-session rows, then notifies the requester over Kafka.
      *
-     * @param recipient 同意申请的一方（接收好友请求的用户）
-     * @param friendId  发起申请的一方用户ID
-     * @return 新建会话的信息
+     * @param recipient the party accepting the request (the user who received it)
+     * @param friendId  the user id of the party who made the request
+     * @return the newly created session
      */
     ModifyFriendApplicationResponse addFriend(User recipient, Long friendId);
 }

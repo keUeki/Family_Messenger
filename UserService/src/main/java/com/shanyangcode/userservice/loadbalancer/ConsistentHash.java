@@ -8,11 +8,11 @@ public class ConsistentHash {
 
     private TreeMap<Integer,String> Nodes = new TreeMap();
 
-    private int VIRTUAL_NODES = 160;//虚拟节点个数，用户指定，默认160
+    private int VIRTUAL_NODES = 160;// Number of virtual nodes; caller-configurable, defaults to 160
 
-    private List<ServiceInstance> instances = new ArrayList<>();//真实物理节点集合
+    private List<ServiceInstance> instances = new ArrayList<>();// The set of real physical nodes
 
-    public HashMap<String,ServiceInstance> map = new HashMap<>();//将服务实例与url地址一一映射
+    public HashMap<String,ServiceInstance> map = new HashMap<>();// Maps each service instance to its url one-to-one
 
     public ConsistentHash(List<ServiceInstance> instances){
         this.instances = instances;
@@ -31,20 +31,20 @@ public class ConsistentHash {
         }
     }
 
-    //得到url地址
+    // Resolve the url
     public  String getServer(String clientInfo) {
         int hash = getHash(clientInfo);
-        //得到大于该Hash值的子红黑树
+        // Take the sub-map of entries with a hash greater than this one
         SortedMap<Integer,String> subMap = Nodes.tailMap(hash);
-        //获取该子树最小元素
+        // Take the smallest element of that sub-map
         Integer nodeIndex = subMap.firstKey();
-        //没有大于该元素的子树 取整树的第一个元素
+        // If nothing is greater, wrap around to the first element of the whole ring
         if (nodeIndex == null) {
             nodeIndex = Nodes.firstKey();
         }
         return Nodes.get(nodeIndex);
     }
-    //使用FNV1_32_HASH算法计算服务器的Hash值,这里不使用重写hashCode的方法，最终效果没区别
+    // Hash the server with FNV1_32_HASH rather than overriding hashCode; the result is equivalent
     private int getHash(String str) {
         final int p = 16777619;
         int hash = (int) 2166136261L;
@@ -55,7 +55,7 @@ public class ConsistentHash {
             hash +=hash <<3;
             hash ^=hash >>17;
             hash +=hash <<5;
-            //如果算出来的值为负数 取其绝对值
+            // Take the absolute value if the result came out negative
             if(hash < 0) {
                 hash = Math.abs(hash);
             }

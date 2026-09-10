@@ -58,11 +58,11 @@ function watchPage(page, label, websocketState) {
 
 async function login(page) {
   await page.goto(`${baseUrl}/auth`, { waitUntil: 'networkidle' })
-  await page.getByPlaceholder('手机号或邮箱').fill(account)
-  await page.getByLabel('密码', { exact: true }).fill(password)
-  await page.getByRole('button', { name: '进入 InfiniteChat' }).click()
+  await page.getByPlaceholder('Phone number or email').fill(account)
+  await page.getByLabel('Password', { exact: true }).fill(password)
+  await page.getByRole('button', { name: 'Enter InfiniteChat' }).click()
   await page.waitForURL(/\/app\/chat/, { timeout: 20_000 })
-  await page.getByText('最近对话').waitFor({ timeout: 20_000 })
+  await page.getByText('Recent chats').waitFor({ timeout: 20_000 })
 }
 
 async function axe(page) {
@@ -81,7 +81,7 @@ async function runDesktopJourneys(page, websocketState) {
 
   await page.getByRole('button', { name: /Compose Peer/ }).first().click()
   const realtimeText = `browser-realtime-${Date.now()}`
-  const realtimeInput = page.getByLabel('输入消息')
+  const realtimeInput = page.getByLabel('Message input')
   await realtimeInput.waitFor({ timeout: 15_000 })
   await realtimeInput.fill(realtimeText)
   await realtimeInput.press('Enter')
@@ -93,25 +93,25 @@ async function runDesktopJourneys(page, websocketState) {
 
   await page.getByRole('button', { name: /Infinite AI/ }).first().click()
   await page.getByRole('heading', { name: 'Infinite AI' }).waitFor({ timeout: 15_000 })
-  await page.getByRole('button', { name: '导入知识' }).click()
+  await page.getByRole('button', { name: 'Import knowledge' }).click()
   const knowledgeTitle = `Browser knowledge ${Date.now()}`
-  await page.getByPlaceholder('例如：项目发布流程').fill(knowledgeTitle)
-  await page.getByLabel('知识内容').fill('浏览器验收知识：发布前必须通过全部门禁。')
+  await page.getByPlaceholder('e.g. Release process').fill(knowledgeTitle)
+  await page.getByLabel('Knowledge content').fill('Browser acceptance knowledge: every release must pass all quality gates.')
   const ingestResponse = page.waitForResponse((response) => response.url().includes('/api/ai/knowledge') && response.request().method() === 'POST')
-  await page.getByRole('button', { name: '导入', exact: true }).click()
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
   results.journeys.aiKnowledge = (await ingestResponse).ok()
 
-  const aiText = `请引用刚导入的发布知识 ${Date.now()}`
-  const aiInput = page.getByLabel('输入消息')
+  const aiText = `Please cite the release knowledge just imported ${Date.now()}`
+  const aiInput = page.getByLabel('Message input')
   await aiInput.fill(aiText)
   const streamResponse = page.waitForResponse((response) => response.url().includes('/api/ai/chat/stream'))
   await aiInput.press('Enter')
   results.journeys.aiStreaming = (await streamResponse).ok()
   await page.getByRole('button', { name: aiText, exact: true }).waitFor({ timeout: 20_000 })
-  await page.getByText(/发布前必须通过全部门禁/).last().waitFor({ timeout: 20_000 })
+  await page.getByText(/every release must pass all quality gates/).last().waitFor({ timeout: 20_000 })
 
   const summaryResponse = page.waitForResponse((response) => response.url().includes('/api/ai/summary'))
-  await page.getByRole('button', { name: '总结对话' }).click()
+  await page.getByRole('button', { name: 'Summarise chat' }).click()
   results.journeys.aiSummary = (await summaryResponse).ok()
   await page.waitForTimeout(300)
 
@@ -149,7 +149,7 @@ try {
     await login(page)
     if (viewport.name === 'mobile') {
       await page.getByRole('button', { name: /Infinite AI/ }).first().click()
-      await page.getByRole('button', { name: '返回' }).click()
+      await page.getByRole('button', { name: 'Back' }).click()
       await page.waitForURL(/\/app\/chat$/)
       results.journeys.mobileBackNavigation = true
     }

@@ -8,21 +8,21 @@ public class MonitorContextHolder {
     private static final ThreadLocal<MonitorContext> CONTEXT_HOLDER = new InheritableThreadLocal<>();
 
     /**
-     * 设置监控上下文
+     * Sets the monitoring context
      */
     public static void setContext(MonitorContext context) {
         CONTEXT_HOLDER.set(context);
     }
 
     /**
-     * 获取当前监控上下文
+     * Returns the current monitoring context
      */
     public static MonitorContext getContext() {
         return CONTEXT_HOLDER.get();
     }
 
     /**
-     * 清除监控上下文
+     * Clears the monitoring context
      */
     public static void clearContext() {
         CONTEXT_HOLDER.remove();

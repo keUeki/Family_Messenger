@@ -6,9 +6,9 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 会话列表项 DTO
+ * Session list item DTO
  * <p>
- * 对应前端聊天页左侧会话列表的一行。
+ * One row of the session list on the left of the chat page.
  */
 @Data
 public class SessionSummaryDTO implements Serializable {
@@ -17,52 +17,52 @@ public class SessionSummaryDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 会话 ID
+     * Session id
      */
     private String sessionId;
 
     /**
-     * 最后一条消息的类型：0 文本，1 图片，2 表情包；没有消息时为 0
+     * Type of the last message: 0 text, 1 image, 2 sticker; 0 when there is no message
      */
     private Integer type;
 
     /**
-     * 会话类型：0 单聊，1 群聊，2 AI
+     * Session type: 0 one-to-one, 1 group, 2 AI
      */
     private Integer sessionType;
 
     /**
-     * 最后一条消息的发送者 ID，没有消息时为空
+     * Sender id of the last message; empty when there is no message
      */
     private String senderId;
 
     /**
-     * 单聊/AI 会话中对方的用户 ID，群聊为空
+     * The other party's user id in a one-to-one or AI session; empty for a group
      */
     private String peerId;
 
     /**
-     * 会话头像：单聊取对方头像，群聊取群头像
+     * Session avatar: the other party's avatar for a one-to-one chat, the group avatar for a group
      */
     private String avatar;
 
     /**
-     * 会话名称：单聊取对方昵称，群聊取群名称
+     * Session name: the other party's nickname for a one-to-one chat, the group name for a group
      */
     private String name;
 
     /**
-     * 最后一条消息的内容预览
+     * Preview of the last message's content
      */
     private String lastMsgContent;
 
     /**
-     * 最后一条消息的时间
+     * Time of the last message
      */
     private String lastMsgTime;
 
     /**
-     * 未读消息数
+     * Number of unread messages
      */
     private Integer count;
 }

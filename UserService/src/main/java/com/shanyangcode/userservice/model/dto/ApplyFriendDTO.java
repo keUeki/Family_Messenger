@@ -7,11 +7,11 @@ import java.time.LocalDateTime;
 import lombok.Data;
 
 /**
- * 好友申请DTO
+ * Friend request DTO
  * <p>
- * 用于返回好友申请列表数据。
- * 列表同时包含"我发出的"和"我收到的"两类申请，
- * 因此 userId/nickname/avatar 始终指向"对方"，由 isReceiver 区分视角。
+ * Carries a row of the friend request list.
+ * The list mixes requests I sent with requests I received, so userId/nickname/avatar
+ * always describe the other party, and isReceiver says which side I am on.
  */
 @Data
 public class ApplyFriendDTO implements Serializable {
@@ -20,37 +20,37 @@ public class ApplyFriendDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 对方用户ID（我是发送者时为接收者，我是接收者时为发送者）
+     * The other party's user id (the receiver when I sent it, the sender when I received it)
      */
     private String userId;
 
     /**
-     * 对方用户昵称
+     * The other party's nickname
      */
     private String nickname;
 
     /**
-     * 对方用户头像
+     * The other party's avatar
      */
     private String avatar;
 
     /**
-     * 申请附言
+     * Message attached to the request
      */
     private String msg;
 
     /**
-     * 申请状态 (0:未读 1:通过 2:拒绝 3:已读 4:过期)
+     * Request status (0: unread, 1: accepted, 2: rejected, 3: read, 4: expired)
      */
     private Integer status;
 
     /**
-     * 更新时间
+     * Last update time
      */
     private LocalDateTime time;
 
     /**
-     * 是否为接收者 (0:否-我是发送者 1:是-我是接收者)
+     * Whether I am the receiver (0: no, I sent it; 1: yes, I received it)
      */
     private Integer isReceiver;
 }

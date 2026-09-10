@@ -2,36 +2,36 @@
 package com.shanyangcode.userservice.constants;
 
 /**
- * 好友状态枚举
+ * Friendship status enum
  *
- * 数据库存储值说明：
- * - 0: 正常好友关系
- * - 1: 已拉黑
- * - 2: 已删除
+ * Stored values:
+ * - 0: an ordinary friendship
+ * - 1: blocked
+ * - 2: deleted
  *
  */
 public enum FriendStatusEnum {
 
 
     /**
-     * 好友状态：非好友关系
+     * Status: not friends
      */
-    NON_FRIEND(-1, "非好友"),
+    NON_FRIEND(-1, "Not a friend"),
 
     /**
-     * 好友状态：正常好友关系
+     * Status: an ordinary friendship
      */
-    NORMAL(0, "好友"),
+    NORMAL(0, "Friend"),
 
     /**
-     * 好友状态：已拉黑
+     * Status: blocked
      */
-    BLOCKED(1, "拉黑"),
+    BLOCKED(1, "Blocked"),
 
     /**
-     * 好友状态：已删除
+     * Status: deleted
      */
-    DELETED(2, "删除");
+    DELETED(2, "Deleted");
 
     private final int code;
     private final String description;
@@ -50,11 +50,11 @@ public enum FriendStatusEnum {
     }
 
     /**
-     * 根据状态码获取枚举值
+     * Returns the enum constant for the given status code
      *
-     * @param code 状态码
-     * @return 对应的枚举值
-     * @throws IllegalArgumentException 如果状态码无效
+     * @param code the status code
+     * @return the matching enum constant
+     * @throws IllegalArgumentException if the status code is not valid
      */
     public static FriendStatusEnum fromCode(int code) {
         for (FriendStatusEnum status : FriendStatusEnum.values()) {
@@ -62,6 +62,6 @@ public enum FriendStatusEnum {
                 return status;
             }
         }
-        throw new IllegalArgumentException("无效的好友状态码: " + code);
+        throw new IllegalArgumentException("Invalid friendship status code: " + code);
     }
 }

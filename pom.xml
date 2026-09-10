@@ -44,10 +44,10 @@
     </properties>
     <dependencies>
         <!--
-          注意：Common 不能在这里声明。
-          父 POM 的 dependencies 会被所有子模块继承，Common 自身也是子模块，
-          会构成"Common 依赖 Common"的循环，导致 Maven 无法读取工程。
-          各服务已在自己的 pom.xml 中单独声明对 Common 的依赖。
+          Note: Common must not be declared here.
+          The parent POM's dependencies are inherited by every module, and Common is itself a module,
+          which would create a "Common depends on Common" cycle and stop Maven reading the project.
+          Each service declares its own dependency on Common in its own pom.xml.
         -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -72,7 +72,7 @@
             <version>3.5.12</version>
         </dependency>
 
-        <!-- MyBatis-Plus 分页插件（PaginationInnerInterceptor）需要此依赖 -->
+        <!-- Required by the MyBatis-Plus pagination plugin (PaginationInnerInterceptor) -->
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus-jsqlparser</artifactId>

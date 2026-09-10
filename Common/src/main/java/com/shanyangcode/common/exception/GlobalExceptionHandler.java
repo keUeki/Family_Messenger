@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 全局异常处理器
+ * Global exception handler
  */
 @RestControllerAdvice
 @Slf4j
@@ -33,14 +33,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public BaseResponse<?> handleHttpMessageNotReadable(HttpMessageNotReadableException e) {
-        log.error("请求体解析失败: {}", e.getMessage());
-        return ResultUtils.error(ErrorCode.INVALID_PARAMETER_ERROR, "请求体格式错误或为空");
+        log.error("Failed to parse request body: {}", e.getMessage());
+        return ResultUtils.error(ErrorCode.INVALID_PARAMETER_ERROR, "Request body is malformed or empty");
     }
 
     @ExceptionHandler(RuntimeException.class)
     public BaseResponse<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("RuntimeException", e);
-        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "系统错误");
+        return ResultUtils.error(ErrorCode.SYSTEM_ERROR, "System error");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -58,21 +58,21 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public BaseResponse<?> handleConstraintViolation(ConstraintViolationException e) {
-        String message = e.getConstraintViolations().stream().map(ConstraintViolation::getMessage).findFirst().orElse("请求参数校验失败");
+        String message = e.getConstraintViolations().stream().map(ConstraintViolation::getMessage).findFirst().orElse("Request parameter validation failed");
         return ResultUtils.error(ErrorCode.PARAMS_ERROR, message);
     }
 
     @ExceptionHandler(value = MissingServletRequestParameterException.class)
     public BaseResponse<?> handlerMissingServletRequestParameterException(Exception e) {
-        log.error("缺少必填参数:{}", e.toString());
-        return ResultUtils.error(ErrorCode.INVALID_PARAMETER_ERROR, "缺少必填参数");
+        log.error("Missing required parameter: {}", e.toString());
+        return ResultUtils.error(ErrorCode.INVALID_PARAMETER_ERROR, "Missing required parameter");
     }
 
     @ExceptionHandler(InputGuardrailException.class)
     public BaseResponse<?> inputGuardrailExceptionHandler(InputGuardrailException e) {
-        log.error("敏感词拦截: {}", e.getMessage());
-        // 直接从异常信息里获取提示内容返回给前端
-        // 或者统一返回 SENSITIVE_WORD_ERROR
+        log.error("Sensitive word blocked: {}", e.getMessage());
+        // Return the message carried by the exception straight to the client
+        // Alternatively, always return SENSITIVE_WORD_ERROR
         return ResultUtils.error(ErrorCode.SENSITIVE_WORD_ERROR);
     }
 }

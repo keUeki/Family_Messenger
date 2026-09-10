@@ -5,17 +5,17 @@ import lombok.Data;
 @Data
 public class HistoryMessageRequest {
     /**
-     * 会话ID
+     * Session id
      */
     private Long sessionId;
     
     /**
-     * 查询该时间戳之前的消息（毫秒）
+     * Return messages older than this timestamp, in milliseconds
      */
     private Long beforeTime;
     
     /**
-     * 每页数量，默认20
+     * Page size; defaults to 20
      */
     private Integer limit = 20;
 }

@@ -18,7 +18,7 @@ export function Avatar({ src, name, size = 40 }: Props) {
       <img
         className={styles.avatar}
         src={src}
-        alt={name ? `${name}的头像` : '用户头像'}
+        alt={name ? `${name}'s avatar` : 'User avatar'}
         style={{ width: size, height: size }}
         onError={() => setFailed(true)}
       />

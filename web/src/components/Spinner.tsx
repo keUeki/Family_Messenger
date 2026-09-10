@@ -5,7 +5,7 @@ export function Spinner({ size = 18 }: { size?: number }) {
     <span
       className={styles.spinner}
       style={{ width: size, height: size, borderWidth: Math.max(2, size / 9) }}
-      aria-label="加载中"
+      aria-label="Loading"
     />
   )
 }

@@ -6,7 +6,7 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 群成员信息DTO
+ * Group member DTO
  */
 @Data
 public class GroupMemberDTO implements Serializable {
@@ -15,22 +15,22 @@ public class GroupMemberDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 成员用户ID
+     * Member's user id
      */
     private String userId;
 
     /**
-     * 成员昵称
+     * Member's nickname
      */
     private String nickname;
 
     /**
-     * 成员头像
+     * Member's avatar
      */
     private String avatar;
 
     /**
-     * 成员在群内的角色：0 群主，1 管理员，2 普通成员
+     * Member's role in the group: 0 owner, 1 admin, 2 regular member
      */
     private Integer role;
 }

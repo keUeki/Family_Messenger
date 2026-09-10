@@ -54,12 +54,12 @@ export function formatDayLabel(value?: string | null) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
   const target = new Date(d.getFullYear(), d.getMonth(), d.getDate())
   const diff = (today.getTime() - target.getTime()) / 86400000
-  if (diff === 0) return '今天'
-  if (diff === 1) return '昨天'
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
   if (d.getFullYear() === now.getFullYear()) {
-    return `${d.getMonth() + 1}月${d.getDate()}日`
+    return `${d.getMonth() + 1}/${d.getDate()}`
   }
-  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`
+  return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`
 }
 
 export function sameDay(a?: string | null, b?: string | null) {
@@ -82,10 +82,10 @@ import { getToken } from '@/api/client'
 
 export async function uploadFile(file: File, getUploadUrl: (name: string) => Promise<{ uploadUrl: string; downloadUrl: string }>) {
   if (!file.type.startsWith('image/')) {
-    throw new Error('请选择图片文件')
+    throw new Error('Please choose an image file')
   }
   if (file.size > 10 * 1024 * 1024) {
-    throw new Error('图片不能超过 10MB')
+    throw new Error('The image must not exceed 10MB')
   }
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || `image_${Date.now()}`
   const { uploadUrl, downloadUrl } = await getUploadUrl(safeName)
@@ -99,7 +99,7 @@ export async function uploadFile(file: File, getUploadUrl: (name: string) => Pro
       Authorization: `Bearer ${token}`,
     },
   })
-  if (!res.ok) throw new Error(`文件上传失败（${res.status}）`)
+  if (!res.ok) throw new Error(`File upload failed (${res.status})`)
   const body = await res.json().catch(() => null) as { data?: string } | null
   return body?.data || downloadUrl
 }

@@ -13,9 +13,9 @@ public class CommonConstant {
 
     public static final String REFRESH_TOKEN_PREFIX = "refresh:token:";
 
-    public static final TimeUnit ACCESS_TOKEN_UNIT = TimeUnit.MINUTES; // 分钟
+    public static final TimeUnit ACCESS_TOKEN_UNIT = TimeUnit.MINUTES; // minutes
 
-    public static final TimeUnit REFRESH_TOKEN_UNIT = TimeUnit.DAYS; // 天
+    public static final TimeUnit REFRESH_TOKEN_UNIT = TimeUnit.DAYS; // days
 
     public static final String KAFKA_MESSAGE_TOPIC_STORE = "store-topic";
 
@@ -46,12 +46,12 @@ public class CommonConstant {
     public static final Integer SESSION_STATUS = 0;
 
     /**
-     * 系统通知消息 Kafka 主题
+     * Kafka topic for system notification messages
      */
     public static final String KAFKA_SYSTEM_NOTIFICATION_TOPIC = "system-notification-topic";
 
     /**
-     * 系统通知持久化 Kafka 主题
+     * Kafka topic for persisting system notifications
      */
     public static final String KAFKA_STORE_NOTIFICATION_TOPIC = "store-notification-topic";
 }

@@ -29,11 +29,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * 群组Controller
+ * Group controller
  * <p>
- * 功能说明：
- * - 提供群组相关的REST API接口
- * - 包含创建群聊、邀请成员、踢出成员、退出群聊、查询成员等功能
+ * Responsibilities:
+ * - Exposes the REST API for groups
+ * - Covers creating a group, inviting and removing members, leaving, and listing members
  */
 @Slf4j
 @RestController
@@ -65,10 +65,10 @@ public class GroupController {
     }
 
     /**
-     * 创建群聊
+     * Creates a group chat
      * <p>
-     * 同时映射 "" 与 "/"：Spring Boot 3 默认不再匹配尾部斜杠，
-     * 而前端 api/group.ts 使用 POST /api/group/ 调用该接口。
+     * Mapped at both "" and "/": Spring Boot 3 no longer matches a trailing slash by default,
+     * while the frontend's api/group.ts calls this endpoint as POST /api/group/.
      */
     @PostMapping({"", "/"})
     public BaseResponse<?> createGroup(@Valid @RequestBody CreateGroupRequest request) {
@@ -76,17 +76,17 @@ public class GroupController {
             CreateGroupResponse response = sessionService.createGroup(request);
             return ResultUtils.success(response);
         } catch (BusinessException e) {
-            log.error("创建群聊失败，原因：{}", e.getMessage());
+            log.error("Failed to create the group, cause: {}", e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("创建群聊失败，原因：{}", e.getMessage(), e);
+            log.error("Failed to create the group, cause: {}", e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
 
     /**
-     * 群聊邀请接口
+     * Invites members to a group chat
      */
     @PostMapping("invite")
     public BaseResponse<?> inviteGroup(@Valid @RequestBody InviteGroupRequest request) {
@@ -94,17 +94,17 @@ public class GroupController {
             InviteGroupResponse response = groupService.inviteGroup(request);
             return ResultUtils.success(response);
         } catch (BusinessException e) {
-            log.error("群聊邀请失败，原因：{}", e.getMessage());
+            log.error("Group invitation failed, cause: {}", e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("群聊邀请失败，原因：{}", e.getMessage(), e);
+            log.error("Group invitation failed, cause: {}", e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
 
     /**
-     * 踢出群成员
+     * Removes members from a group
      */
     @PostMapping("/kick")
     public BaseResponse<?> kickGroupMembers(
@@ -113,17 +113,17 @@ public class GroupController {
             KickGroupMembersResponse response = kickGroupService.kickGroupMembers(request);
             return ResultUtils.success(response);
         } catch (BusinessException e) {
-            log.error("踢出群成员失败，原因：{}", e.getMessage());
+            log.error("Failed to remove the group members, cause: {}", e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("踢出群成员失败，原因：{}", e.getMessage(), e);
+            log.error("Failed to remove the group members, cause: {}", e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
 
     /**
-     * 退出群聊
+     * Leaves a group chat
      */
     @PostMapping("/exit")
     public BaseResponse<?> exitGroup(@Valid @RequestBody GroupExitRequestDTO request) {
@@ -131,17 +131,17 @@ public class GroupController {
             boolean success = exitGroupService.exitGroup(request);
             return ResultUtils.success(success);
         } catch (BusinessException e) {
-            log.error("退出群聊失败，原因：{}", e.getMessage());
+            log.error("Failed to leave the group, cause: {}", e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("退出群聊失败，原因：{}", e.getMessage(), e);
+            log.error("Failed to leave the group, cause: {}", e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
 
     /**
-     * 分页查询群成员
+     * Returns the group members, paginated
      */
     @GetMapping("/{sessionId}/members")
     public BaseResponse<?> getGroupMembers(
@@ -151,17 +151,17 @@ public class GroupController {
             PageResponse<GroupMemberDTO> response = getGroupMembersService.getGroupMembers(sessionId, pageRequest);
             return ResultUtils.success(response);
         } catch (BusinessException e) {
-            log.error("获取群成员失败，sessionId：{}，原因：{}", sessionId, e.getMessage());
+            log.error("Failed to load the group members, sessionId: {}, cause: {}", sessionId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("获取群成员失败，sessionId：{}，原因：{}", sessionId, e.getMessage(), e);
+            log.error("Failed to load the group members, sessionId: {}, cause: {}", sessionId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
 
     /**
-     * 分页查询用户加入的群聊
+     * Returns the groups the user belongs to, paginated
      */
     @GetMapping("/user/{userId}")
     public BaseResponse<?> getUserGroups(
@@ -171,17 +171,17 @@ public class GroupController {
             PageResponse<UserGroupDTO> response = userGroupService.getUserGroups(userId, pageRequest);
             return ResultUtils.success(response);
         } catch (BusinessException e) {
-            log.error("获取用户群聊列表失败，userId：{}，原因：{}", userId, e.getMessage());
+            log.error("Failed to load the user's group list, userId: {}, cause: {}", userId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("获取用户群聊列表失败，userId：{}，原因：{}", userId, e.getMessage(), e);
+            log.error("Failed to load the user's group list, userId: {}, cause: {}", userId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }
 
 
     /**
-     * 查询群成员数量
+     * Returns the number of group members
      */
     @GetMapping("/{sessionId}/count")
     public BaseResponse<?> getGroupMemberCount(@PathVariable("sessionId") Long sessionId) {
@@ -189,10 +189,10 @@ public class GroupController {
             int count = userSessionService.getGroupMemberCount(sessionId);
             return ResultUtils.success(new GroupMemberCountResponse(count));
         } catch (BusinessException e) {
-            log.error("获取群聊人数失败，sessionId：{}，原因：{}", sessionId, e.getMessage());
+            log.error("Failed to count the group members, sessionId: {}, cause: {}", sessionId, e.getMessage());
             return ResultUtils.error(e.getCode(), e.getMessage());
         } catch (Exception e) {
-            log.error("获取群聊人数失败，sessionId：{}，原因：{}", sessionId, e.getMessage(), e);
+            log.error("Failed to count the group members, sessionId: {}, cause: {}", sessionId, e.getMessage(), e);
             return ResultUtils.error(ErrorCode.SYSTEM_ERROR);
         }
     }

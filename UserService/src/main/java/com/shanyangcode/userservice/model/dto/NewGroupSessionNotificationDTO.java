@@ -5,12 +5,12 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 新群聊会话通知DTO（消息体body部分）
+ * New group session notification DTO (the message body)
  *
- * 场景：用户被邀请加入群聊，通知该用户
+ * Scenario: a user is invited to a group chat and is notified
  *
- * 注意：sessionId、sessionType 等字段已提升至 SystemNotificationMessage 顶层
- * 此DTO仅作为 SystemNotificationMessage.body 的内容
+ * Note: fields such as sessionId and sessionType were lifted to the top level of SystemNotificationMessage;
+ * this DTO is only the content of SystemNotificationMessage.body
  */
 @Data
 public class NewGroupSessionNotificationDTO implements Serializable {
@@ -18,22 +18,22 @@ public class NewGroupSessionNotificationDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 群聊名称
+     * Group name
      */
     private String sessionName;
 
     /**
-     * 群聊头像URL
+     * Group avatar URL
      */
     private String avatar;
 
     /**
-     * 群主用户ID
+     * Group owner's user id
      */
     private Long creatorId;
 
     /**
-     * 群成员数量
+     * Number of group members
      */
     private Integer membersCount;
 }

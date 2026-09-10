@@ -6,58 +6,58 @@ import com.shanyangcode.userservice.model.dto.NewGroupSessionNotificationDTO;
 import com.shanyangcode.userservice.model.dto.NewSessionNotificationDTO;
 
 /**
- * 通知推送服务接口
+ * Notification push service
  * <p>
- * 功能说明：
- * - 通过Kafka异步发送系统通知消息
- * - 由RealTimeService消费并推送给在线用户
- * - 支持多种类型的系统通知
- * - 符合IM项目通知消息设计方案
+ * Responsibilities:
+ * - Publishes system notifications asynchronously over Kafka
+ * - RealTimeService consumes them and pushes them to online users
+ * - Supports several kinds of system notification
+ * - Follows the notification design used across this IM project
  */
 public interface NotificationService {
 
     /**
-     * 推送好友申请通知
+     * Pushes a friend request notification
      * <p>
-     * 场景：用户收到新的好友申请
+     * Scenario: a user receives a new friend request
      *
-     * @param userId       接收通知的用户ID
-     * @param notification 好友申请通知信息
+     * @param userId       the id of the user receiving the notification
+     * @param notification the friend request notification payload
      */
     void pushNewApply(Long userId, FriendApplicationNotificationDTO notification);
 
     /**
-     * 推送新会话通知
+     * Pushes a new-session notification
      * <p>
-     * 场景：好友申请通过后，系统创建新的单聊会话，通知申请方
+     * Scenario: once a friend request is accepted the system creates a one-to-one session and notifies the requester
      *
-     * @param senderId     触发该会话的用户ID（同意申请的一方）
-     * @param userId       接收通知的用户ID（发起申请的一方）
-     * @param sessionId    会话ID
-     * @param sessionType  会话类型（0-单聊，1-群聊，2-机器人）
-     * @param notification 新会话通知信息（包含sessionName和avatar）
+     * @param senderId     the id of the user who triggered the session (the party who accepted)
+     * @param userId       the id of the user receiving the notification (the party who made the request)
+     * @param sessionId    the session id
+     * @param sessionType  the session type (0 one-to-one, 1 group, 2 bot)
+     * @param notification the new-session notification payload (carries sessionName and avatar)
      */
     void pushNewSession(Long senderId, Long userId, Long sessionId, Integer sessionType, NewSessionNotificationDTO notification);
 
     /**
-     * 推送新群聊会话通知
+     * Pushes a new-group-session notification
      * <p>
-     * 场景：用户被邀请加入群聊
+     * Scenario: a user is invited to join a group chat
      *
-     * @param userId       接收通知的用户ID
-     * @param sessionId    群聊会话ID
-     * @param notification 新群聊会话通知信息（包含sessionName和avatar）
+     * @param userId       the id of the user receiving the notification
+     * @param sessionId    the group session id
+     * @param notification the new-group-session notification payload (carries sessionName and avatar)
      */
     void pushGroupNewSession(Long userId, Long sessionId, NewGroupSessionNotificationDTO notification);
 
     /**
-     * 推送群聊踢出/退出通知
+     * Pushes a group removal/leave notification
      * <p>
-     * 场景：成员被踢出群聊（operatorId 为操作者），或成员主动退出群聊（operatorId 为 null）
+     * Scenario: a member is removed (operatorId is the actor) or leaves voluntarily (operatorId is null)
      *
-     * @param userId       接收通知的用户ID
-     * @param sessionId    群聊会话ID
-     * @param notification 踢出/退出通知信息（包含memberIds和operatorId）
+     * @param userId       the id of the user receiving the notification
+     * @param sessionId    the group session id
+     * @param notification the removal/leave notification payload (carries memberIds and operatorId)
      */
     void pushGroupKickNotification(Long userId, Long sessionId, GroupKickNotificationDTO notification);
 }

@@ -6,7 +6,7 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 用户资料响应
+ * User profile response
  */
 @Data
 public class UserInfoResponse implements Serializable {
@@ -15,32 +15,32 @@ public class UserInfoResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 用户 ID
+     * User id
      */
     private String userId;
 
     /**
-     * 登录账号（邮箱）
+     * Login account (email address)
      */
     private String account;
 
     /**
-     * 用户昵称
+     * Nickname
      */
     private String nickname;
 
     /**
-     * 用户头像
+     * Avatar
      */
     private String avatar;
 
     /**
-     * 性别：0 女，1 男，2 未知
+     * Gender: 0 female, 1 male, 2 unknown
      */
     private Integer gender;
 
     /**
-     * 个性签名
+     * Bio
      */
     private String description;
 }

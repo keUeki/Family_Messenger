@@ -26,55 +26,55 @@ public class RagTool {
     private String docsPath;
 
     /**
-     * 定义工具方法。
-     * 大模型会根据 @Tool 的描述和参数名来决定何时调用。
+     * Tool definition.
+     * The model decides when to call it based on the @Tool description and the parameter names.
      */
-    @Tool("当用户想要保存问答对、知识点或者向知识库添加新信息时调用此工具。将问题、答案和目标文件名作为参数。")
+    @Tool("Call this tool when the user wants to save a question-and-answer pair or add new information to the knowledge base. Takes the question, the answer and the target file name as parameters.")
     public String addKnowledgeToRag(String question, String answer, String fileName) {
-        log.info("Tool 调用: 正在保存知识 - Q: {}, file: {}", question, fileName);
+        log.info("Tool invoked: saving knowledge - Q: {}, file: {}", question, fileName);
 
-        // 1. 格式化内容
-        String formattedContent = String.format("### Q：%s\n\nA：%s", question, answer);
+        // 1. Format the entry
+        String formattedContent = String.format("### Q: %s\n\nA: %s", question, answer);
 
-        // 2. 处理文件名 (防止没写后缀)
+        // 2. Normalise the file name (guard against a missing extension)
         if (fileName == null || fileName.isBlank()) {
-            fileName = "InfiniteChat.md"; // 默认文件
+            fileName = "InfiniteChat.md"; // default file
         }
         if (!fileName.endsWith(".md")) {
             fileName = fileName + ".md";
         }
 
-        // 3. 写入物理文件
+        // 3. Append it to the file on disk
         boolean writeSuccess = appendToFile(formattedContent, fileName);
         if (!writeSuccess) {
-            return "保存失败：无法写入本地文件系统，请检查日志。";
+            return "Save failed: could not write to the local file system, please check the logs.";
         }
 
-        // 4. 存入向量数据库
+        // 4. Store it in the vector database
         try {
-            // 设置来源元数据
+            // Set the source metadata
             Metadata metadata = Metadata.from("file_name", fileName);
 
-            // 创建文档并 Embedding
+            // Build the document and embed it
             Document document = Document.from(formattedContent, metadata);
             embeddingStoreIngestor.ingest(document);
 
-            log.info("Tool 执行成功: 知识已同步至 RAG");
-            return "成功！已将该知识点保存到文档 [" + fileName + "] 并同步至向量数据库。";
+            log.info("Tool finished: the knowledge entry was synchronised to RAG");
+            return "Done! The knowledge entry was saved to the document [" + fileName + "] and synchronised to the vector database.";
         } catch (Exception e) {
-            log.error("RAG - 向量化失败", e);
-            return "文件写入成功，但向量数据库更新失败：" + e.getMessage();
+            log.error("RAG - embedding failed", e);
+            return "The file was written, but the vector database update failed: " + e.getMessage();
         }
     }
 
     /**
-     * 辅助方法：追加写入文件
+     * Helper that appends the entry to a file
      */
     private synchronized boolean appendToFile(String content, String fileName) {
         try {
             Path filePath = Paths.get(docsPath, fileName);
             
-            // 如果文件不存在，先创建
+            // Create the file first if it does not exist
             if (!Files.exists(filePath)) {
                 if (filePath.getParent() != null) {
                     Files.createDirectories(filePath.getParent());
@@ -83,7 +83,7 @@ public class RagTool {
                 log.info("Tool created new file: {}", filePath.toAbsolutePath());
             }
 
-            // 前后加换行符
+            // Wrap it in newlines
             String textToAppend = "\n\n" + content;
 
             Files.writeString(
@@ -93,7 +93,7 @@ public class RagTool {
             );
             return true;
         } catch (IOException e) {
-            log.error("RAG Tool - 写入文件失败: {}", e.getMessage(), e);
+            log.error("RAG Tool - failed to write the file: {}", e.getMessage(), e);
             return false;
         }
     }

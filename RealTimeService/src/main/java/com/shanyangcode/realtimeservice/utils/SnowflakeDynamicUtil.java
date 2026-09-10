@@ -16,9 +16,9 @@ public class SnowflakeDynamicUtil {
     private static final Snowflake SNOWFLAKE = IdUtil.getSnowflake(workerId, dataCenterId);
 
     /**
-     * 生成雪花 ID
+     * Generates a snowflake ID
      *
-     * @return 雪花 ID
+     * @return the snowflake ID
      */
     public static long nextId() {
         return SNOWFLAKE.nextId();

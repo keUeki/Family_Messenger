@@ -8,7 +8,7 @@ import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 /**
- * 修改好友申请请求DTO
+ * Friend-request update DTO
  */
 @Data
 public class ModifyFriendApplicationRequest implements Serializable {
@@ -17,9 +17,9 @@ public class ModifyFriendApplicationRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 待处理的申请发送者用户Id列表
-     * (通过和拒绝状态时只能包含一个；已读状态时可以包含多个)
+     * User ids of the senders whose requests are being acted on
+     * (accept and reject take exactly one; marking as read accepts several)
      */
-    @NotEmpty(message = "接收者ID列表不能为空")
+    @NotEmpty(message = "Receiver id list must not be empty")
     private List<String> receiveuserIds;
 }

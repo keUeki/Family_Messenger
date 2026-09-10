@@ -13,10 +13,10 @@ import type { SystemNotification } from '@/types'
 import styles from './NotificationsPage.module.css'
 
 const typeMeta: Record<number, { label: string; tone: string }> = {
-  101: { label: '好友申请', tone: 'blue' },
-  102: { label: '新会话', tone: 'green' },
-  103: { label: '群聊邀请', tone: 'orange' },
-  104: { label: '群聊变动', tone: 'red' },
+  101: { label: 'Friend request', tone: 'blue' },
+  102: { label: 'New conversation', tone: 'green' },
+  103: { label: 'Group invitation', tone: 'orange' },
+  104: { label: 'Group change', tone: 'red' },
 }
 
 function parseBody(n: SystemNotification) {
@@ -36,16 +36,16 @@ function parseBody(n: SystemNotification) {
 function summarize(n: SystemNotification) {
   const body = parseBody(n)
   if (Number(n.type) === 101) {
-    const name = String(body.applyUserName || body.applyFriendName || '有人')
-    return `${name}：${String(body.message || '请求添加你为好友')}`
+    const name = String(body.applyUserName || body.applyFriendName || 'Someone')
+    return `${name}: ${String(body.message || 'would like to add you as a friend')}`
   }
   if (Number(n.type) === 102 || Number(n.type) === 103) {
-    return `会话「${String(body.sessionName || '未命名')}」已创建`
+    return `The conversation "${String(body.sessionName || 'Untitled')}" was created`
   }
   if (Number(n.type) === 104) {
-    return '你已被移出群聊或成员发生变更'
+    return 'You were removed from a group, or its members changed'
   }
-  return typeof n.content === 'string' && n.content ? n.content : '新通知'
+  return typeof n.content === 'string' && n.content ? n.content : 'New notification'
 }
 
 export function NotificationsPage() {
@@ -58,7 +58,7 @@ export function NotificationsPage() {
   const setActiveSession = useChatStore((s) => s.setActiveSession)
 
   useEffect(() => {
-    load(userId).catch((e) => toast.error(e instanceof ApiError ? e.message : '加载失败'))
+    load(userId).catch((e) => toast.error(e instanceof ApiError ? e.message : 'Failed to load'))
   }, [userId, load])
 
   const openNotification = async (n: SystemNotification) => {
@@ -73,7 +73,7 @@ export function NotificationsPage() {
       if (/^\d+$/.test(sessionId) && sessionId !== '0') {
         upsertSession({
           sessionId,
-          name: String(body.sessionName || '会话'),
+          name: String(body.sessionName || 'Conversation'),
           avatar: String(body.avatar || ''),
           sessionType: Number(n.type) === 103 || Number(n.type) === 104 ? 1 : 0,
           count: 0,
@@ -86,9 +86,9 @@ export function NotificationsPage() {
         navigate(`/app/chat/${sessionId}`)
         return
       }
-      toast.info('已标为已读')
+      toast.info('Marked as read')
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '通知处理失败')
+      toast.error(e instanceof ApiError ? e.message : 'Failed to handle the notification')
     }
   }
 
@@ -97,34 +97,34 @@ export function NotificationsPage() {
       <div className={styles.header}>
         <div>
           <span className={styles.eyebrow}>ACTIVITY INBOX</span>
-          <h2>待处理动态</h2>
-          <p>好友申请、群聊邀请与重要变动，都在这里。</p>
+          <h2>Waiting on you</h2>
+          <p>Friend requests, group invitations and important changes all land here.</p>
         </div>
       </div>
       <div className={styles.overview}>
-        <div className={styles.unreadMetric}><strong>{unread}</strong><span>条未读通知</span></div>
-        <p>{unread ? '有新的动态等待你查看，处理后会自动从列表移除。' : '已全部处理完成，现在很清爽。'}</p>
+        <div className={styles.unreadMetric}><strong>{unread}</strong><span>unread notifications</span></div>
+        <p>{unread ? 'There is something new to look at; items disappear once you handle them.' : 'Everything is handled. All clear.'}</p>
         <div className={styles.actions}>
-          <Button variant="secondary" loading={loading} onClick={() => load(userId)}>刷新</Button>
+          <Button variant="secondary" loading={loading} onClick={() => load(userId)}>Refresh</Button>
           <Button
             disabled={!unread}
             onClick={async () => {
               try {
                 await markAll(userId)
-                toast.success('已全部标为已读')
+                toast.success('All marked as read')
               } catch (e) {
-                toast.error(e instanceof ApiError ? e.message : '操作失败')
+                toast.error(e instanceof ApiError ? e.message : 'The operation failed')
               }
             }}
-          >全部已读</Button>
+          >Mark all read</Button>
         </div>
       </div>
       {loading ? <SkeletonList rows={4} /> : null}
-      <div className={styles.listHeading}><h3>最新通知</h3><span>{list.length} 条</span></div>
+      <div className={styles.listHeading}><h3>Latest notifications</h3><span>{list.length} items</span></div>
       <div className={styles.list}>
         {list.map((n, index) => {
           const type = Number(n.type)
-          const meta = typeMeta[type] || { label: `类型 ${n.type}`, tone: 'blue' }
+          const meta = typeMeta[type] || { label: `Type ${n.type}`, tone: 'blue' }
           return (
             <article
               key={n.id || n.messageId || String(index)}
@@ -146,13 +146,13 @@ export function NotificationsPage() {
                   <span>{formatTime(n.createdTime)}</span>
                 </div>
                 <p className={styles.summary}>{summarize(n)}</p>
-                <span className={styles.cta}>查看并处理 <i>→</i></span>
+                <span className={styles.cta}>Review and handle <i>→</i></span>
               </div>
             </article>
           )
         })}
         {!list.length && !loading ? (
-          <EmptyState title="暂无未读通知" description="新的好友申请和群动态会出现在这里。" />
+          <EmptyState title="No unread notifications" description="New friend requests and group activity will show up here." />
         ) : null}
       </div>
     </div>

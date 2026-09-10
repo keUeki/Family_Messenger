@@ -22,19 +22,19 @@ import styles from './AppShell.module.css'
 import type { ReactNode } from 'react'
 
 const nav: { to: string; label: string; icon: ReactNode }[] = [
-  { to: '/app/chat', label: '聊天', icon: <IconChat size={20} /> },
-  { to: '/app/contacts', label: '通讯录', icon: <IconPeople size={20} /> },
-  { to: '/app/groups', label: '群组', icon: <IconGroup size={20} /> },
-  { to: '/app/notifications', label: '通知', icon: <IconBell size={20} /> },
-  { to: '/app/profile', label: '我的', icon: <IconUser size={20} /> },
+  { to: '/app/chat', label: 'Chats', icon: <IconChat size={20} /> },
+  { to: '/app/contacts', label: 'Contacts', icon: <IconPeople size={20} /> },
+  { to: '/app/groups', label: 'Groups', icon: <IconGroup size={20} /> },
+  { to: '/app/notifications', label: 'Notifications', icon: <IconBell size={20} /> },
+  { to: '/app/profile', label: 'Me', icon: <IconUser size={20} /> },
 ]
 
 const pageMeta = [
-  { match: '/app/chat', eyebrow: 'CONVERSATIONS', title: '消息', description: '让重要对话清晰抵达' },
-  { match: '/app/contacts', eyebrow: 'CONNECTIONS', title: '通讯录', description: '管理好友与新的连接' },
-  { match: '/app/groups', eyebrow: 'COMMUNITIES', title: '群组', description: '和一群人，把事情聊清楚' },
-  { match: '/app/notifications', eyebrow: 'INBOX', title: '通知', description: '集中查看需要你处理的动态' },
-  { match: '/app/profile', eyebrow: 'ACCOUNT', title: '个人中心', description: '账户、安全与连接设置' },
+  { match: '/app/chat', eyebrow: 'CONVERSATIONS', title: 'Messages', description: 'Every conversation that matters, delivered clearly' },
+  { match: '/app/contacts', eyebrow: 'CONNECTIONS', title: 'Contacts', description: 'Manage your friends and new connections' },
+  { match: '/app/groups', eyebrow: 'COMMUNITIES', title: 'Groups', description: 'Get everyone on the same page' },
+  { match: '/app/notifications', eyebrow: 'INBOX', title: 'Notifications', description: 'Everything waiting on you, in one place' },
+  { match: '/app/profile', eyebrow: 'ACCOUNT', title: 'Profile', description: 'Account, security and connection settings' },
 ]
 
 function ShellInner() {
@@ -92,12 +92,12 @@ function ShellInner() {
 
   const statusLabel =
     status === 'open'
-      ? '实时已连接'
+      ? 'Realtime connected'
       : status === 'connecting'
-        ? '正在连接'
+        ? 'Connecting'
         : status === 'missing'
-          ? '未分配节点'
-          : '连接已断开'
+          ? 'No node assigned'
+          : 'Disconnected'
 
   const onLogout = async () => {
     await logout()
@@ -110,13 +110,13 @@ function ShellInner() {
       const uri = await userApi.refreshUri(userId)
       if (uri) {
         setWsServerUri(uri)
-        toast.success('已刷新实时节点')
+        toast.success('Realtime node refreshed')
         window.setTimeout(() => connect(), 50)
       } else {
-        toast.warning('未分配到实时节点，请确认 realtime 已注册 etcd')
+        toast.warning('No realtime node was assigned; check that realtime is registered in etcd')
       }
     } catch {
-      toast.error('刷新节点失败')
+      toast.error('Failed to refresh the node')
     }
   }
 
@@ -154,7 +154,7 @@ function ShellInner() {
         </nav>
         <div className={styles.navFooter}>
           <span>SECURE CHAT</span>
-          <button className={styles.logout} onClick={onLogout} type="button">退出登录</button>
+          <button className={styles.logout} onClick={onLogout} type="button">Log out</button>
         </div>
       </aside>
       <div className={styles.main}>
@@ -174,7 +174,7 @@ function ShellInner() {
               type="button"
               className={[styles.status, styles[`st_${status}`]].join(' ')}
               onClick={onRefreshNode}
-              title="点击刷新实时节点"
+              title="Click to refresh the realtime node"
             >
               <i />
               <span className={styles.statusText}>{statusLabel}</span>
@@ -190,15 +190,15 @@ function ShellInner() {
               >
                 <Avatar src={profile.avatar} name={profile.nickname} size={36} />
                 <span className={styles.userCopy}>
-                  <strong>{profile.nickname || profile.account || '用户'}</strong>
-                  <small>{profile.account || 'InfiniteChat 用户'}</small>
+                  <strong>{profile.nickname || profile.account || 'User'}</strong>
+                  <small>{profile.account || 'InfiniteChat user'}</small>
                 </span>
                 <span className={styles.chevron}>⌄</span>
               </button>
               {menuOpen ? (
                 <div className={styles.menu} role="menu">
                   <div className={styles.menuIntro}>
-                    <strong>{profile.nickname || 'InfiniteChat 用户'}</strong>
+                    <strong>{profile.nickname || 'InfiniteChat user'}</strong>
                     <span>{profile.account}</span>
                   </div>
                   <Button
@@ -208,7 +208,7 @@ function ShellInner() {
                       navigate('/app/profile')
                     }}
                   >
-                    个人中心
+                    Profile
                   </Button>
                   <Button
                     variant="ghost"
@@ -217,9 +217,9 @@ function ShellInner() {
                       onRefreshNode()
                     }}
                   >
-                    刷新实时连接
+                    Refresh realtime connection
                   </Button>
-                  <Button variant="danger" onClick={onLogout}>退出登录</Button>
+                  <Button variant="danger" onClick={onLogout}>Log out</Button>
                 </div>
               ) : null}
             </div>

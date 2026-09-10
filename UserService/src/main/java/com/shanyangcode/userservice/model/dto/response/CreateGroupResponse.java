@@ -7,7 +7,7 @@ import java.util.List;
 import lombok.Data;
 
 /**
- * 创建群聊响应DTO
+ * Create-group response DTO
  */
 @Data
 public class CreateGroupResponse implements Serializable {
@@ -16,32 +16,32 @@ public class CreateGroupResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 创建者ID
+     * Creator's id
      */
     private String creatorId;
 
     /**
-     * 会话ID
+     * Session id
      */
     private String sessionId;
 
     /**
-     * 会话名称（群名）
+     * Session name (the group name)
      */
     private String sessionName;
 
     /**
-     * 会话类型 (1:群聊)
+     * Session type (1: group)
      */
     private Integer sessionType;
 
     /**
-     * 群头像URL
+     * Group avatar URL
      */
     private String avatar;
 
     /**
-     * 邀请失败的成员ID列表
+     * Ids of the members who could not be invited
      */
     private List<String> failedMemberIds;
 }

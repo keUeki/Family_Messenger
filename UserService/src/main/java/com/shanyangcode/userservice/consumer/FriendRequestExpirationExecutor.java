@@ -12,20 +12,20 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 /**
- * 好友申请过期事件消费者（过期处理执行器）
+ * Consumer for friend-request expiry events (performs the expiry)
  *
- * 功能说明：
- * - 消费好友申请过期事件
- * - 执行过期逻辑：更新数据库中好友申请状态为"过期"
- * - 仅更新未被处理的申请（状态为UNREAD或READ）
+ * Responsibilities:
+ * - Consumes friend-request expiry events
+ * - Performs the expiry: sets the request's database status to EXPIRED
+ * - Only touches requests that have not been acted on (status UNREAD or READ)
  *
- * 数据流：
- * FriendRequestExpirationDispatcher扫描到过期任务 → Kafka: friend-request-expiration-topic
- * → 本Consumer消费 → 更新数据库状态为EXPIRED
+ * Data flow:
+ * FriendRequestExpirationDispatcher finds a due task -> Kafka: friend-request-expiration-topic
+ * -> this consumer -> the database status becomes EXPIRED
  *
- * 注意事项：
- * - 已通过（ACCEPTED）或已拒绝（REJECTED）的申请不应再标记为过期
- * - 幂等性：如果状态已经是EXPIRED，则跳过处理
+ * Notes:
+ * - A request that was ACCEPTED or REJECTED must never be marked expired
+ * - Idempotency: if the status is already EXPIRED the event is skipped
  */
 @Slf4j
 @Component
@@ -38,60 +38,60 @@ public class FriendRequestExpirationExecutor {
     }
 
     /**
-     * 消费好友申请过期事件，执行过期逻辑
+     * Consumes a friend-request expiry event and applies the expiry
      *
-     * 处理流程：
-     * 1. 解析Kafka消息，获取好友申请ID
-     * 2. 查询数据库，获取好友申请记录
-     * 3. 检查当前状态，只处理UNREAD和READ状态的申请
-     * 4. 更新状态为EXPIRED
-     * 5. 记录日志
+     * Processing steps:
+     * 1. Parse the Kafka message to obtain the friend request id
+     * 2. Load the friend request row from the database
+     * 3. Check the current status; only UNREAD and READ are processed
+     * 4. Set the status to EXPIRED
+     * 5. Log the outcome
      *
-     * @param message Kafka消息（JSON格式的FriendRequestExpirationEvent）
+     * @param message the Kafka message (a FriendRequestExpirationEvent in JSON)
      */
     @KafkaListener(
             topics = "friend-request-expiration-topic",
             groupId = "friend-request-executor-group",
-            concurrency = "3"  // 支持并发处理
+            concurrency = "3"  // processed concurrently
     )
     public void executeExpiration(String message) {
         try {
-            log.info("收到好友申请过期事件: {}", message);
+            log.info("Friend-request expiry event received: {}", message);
 
-            // 1. 解析事件
+            // 1. Parse the event
             FriendRequestExpirationEvent event = JSONUtil.toBean(message, FriendRequestExpirationEvent.class);
             Long applyFriendId = event.getApplyFriendId();
 
-            // 2. 查询好友申请记录
+            // 2. Load the friend request row
             ApplyFriend applyFriend = applyFriendService.getById(applyFriendId);
 
             if (applyFriend == null) {
-                log.warn("好友申请不存在，申请ID: {}", applyFriendId);
+                log.warn("Friend request does not exist, request id: {}", applyFriendId);
                 return;
             }
 
-            // 3. 检查当前状态
+            // 3. Check the current status
             Integer currentStatus = applyFriend.getStatus();
 
             if (currentStatus.equals(FriendApplicationStatusEnum.EXPIRED.getCode())) {
-                // 已经是过期状态，幂等性处理
-                log.info("好友申请已是过期状态，跳过处理，申请ID: {}", applyFriendId);
+                // Already expired; handled idempotently
+                log.info("Friend request is already expired, skipping, request id: {}", applyFriendId);
                 return;
             }
 
             if (currentStatus.equals(FriendApplicationStatusEnum.ACCEPTED.getCode())) {
-                // 已通过，不应标记为过期
-                log.info("好友申请已通过，不应标记为过期，申请ID: {}", applyFriendId);
+                // Already accepted; must not be marked expired
+                log.info("Friend request was accepted, so it must not be marked expired, request id: {}", applyFriendId);
                 return;
             }
 
             if (currentStatus.equals(FriendApplicationStatusEnum.REJECTED.getCode())) {
-                // 已拒绝，不应标记为过期
-                log.info("好友申请已拒绝，不应标记为过期，申请ID: {}", applyFriendId);
+                // Already rejected; must not be marked expired
+                log.info("Friend request was rejected, so it must not be marked expired, request id: {}", applyFriendId);
                 return;
             }
 
-            // 4. 更新状态为EXPIRED（只更新UNREAD和READ状态的申请）
+            // 4. Set the status to EXPIRED (only for requests still UNREAD or READ)
             LambdaUpdateWrapper<ApplyFriend> updateWrapper = new LambdaUpdateWrapper<>();
             updateWrapper.set(ApplyFriend::getStatus, FriendApplicationStatusEnum.EXPIRED.getCode())
                     .eq(ApplyFriend::getApplyFriendId, applyFriendId)
@@ -103,13 +103,13 @@ public class FriendRequestExpirationExecutor {
             boolean updated = applyFriendService.update(updateWrapper);
 
             if (updated) {
-                log.info("好友申请已标记为过期，申请ID: {}", applyFriendId);
+                log.info("Friend request marked as expired, request id: {}", applyFriendId);
             } else {
-                log.warn("好友申请状态更新失败（可能已被处理），申请ID: {}", applyFriendId);
+                log.warn("Failed to update the friend request status (it may already have been handled), request id: {}", applyFriendId);
             }
 
         } catch (Exception e) {
-            log.error("处理好友申请过期事件失败: {}, 错误: {}", message, e.getMessage(), e);
+            log.error("Failed to handle the friend-request expiry event: {}, error: {}", message, e.getMessage(), e);
         }
     }
 }

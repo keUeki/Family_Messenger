@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * 退出群聊服务实现类
+ * Leave-group service implementation
  */
 @Slf4j
 @Service
@@ -36,17 +36,17 @@ public class ExitGroupServiceImpl implements ExitGroupService {
     private final UserService userService;
 
     /**
-     * 用户角色常量
+     * User role constants
      */
     private static final int USER_ROLE_GROUP_OWNER = 0;
 
     /**
-     * 会话状态常量
+     * Session status constants
      */
     private static final int SESSION_STATUS_NORMAL = 0;
 
     /**
-     * 用户状态常量
+     * User status constants
      */
     private static final int USER_STATUS_NORMAL = 0;
 
@@ -61,10 +61,10 @@ public class ExitGroupServiceImpl implements ExitGroupService {
     }
 
     /**
-     * 退出群聊
+     * Leaves a group chat
      *
-     * @param request 退出群聊请求
-     * @return 是否成功
+     * @param request the leave-group request
+     * @return whether the operation succeeded
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -72,70 +72,70 @@ public class ExitGroupServiceImpl implements ExitGroupService {
         Long sessionId = request.getSessionId();
         Long userId = request.getUserId();
 
-        log.info("用户退出群聊，sessionId: {}, userId: {}", sessionId, userId);
+        log.info("User is leaving the group, sessionId: {}, userId: {}", sessionId, userId);
 
-        // 1. 参数校验
+        // 1. Validate the parameters
         validateExitGroupParameters(sessionId, userId);
 
-        // 2. 校验用户存在且状态正常
+        // 2. Check that the user exists and is active
         validateUser(userId);
 
-        // 3. 校验会话存在且为群聊
+        // 3. Check that the session exists and is a group chat
         validateSession(sessionId);
 
-        // 4. 查询用户在群内的记录
+        // 4. Load the user's membership row
         LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserSession::getSessionId, sessionId)
                 .eq(UserSession::getUserId, userId)
                 .eq(UserSession::getStatus, SESSION_STATUS_NORMAL);
         UserSession userSession = userSessionMapper.selectOne(wrapper);
 
-        ThrowUtils.throwIf(userSession == null, ErrorCode.OPERATION_ERROR, "您不在该群聊中");
+        ThrowUtils.throwIf(userSession == null, ErrorCode.OPERATION_ERROR, "You are not a member of that group");
 
-        // 5. 群主不能直接退出群聊（需要先转让群主或解散群）
+        // 5. The owner cannot simply leave; they must transfer ownership or disband the group first
         if (userSession.getRole() == USER_ROLE_GROUP_OWNER) {
-            log.warn("群主不能直接退出群聊，需要先转让群主或解散群，userId: {}, sessionId: {}",
+            log.warn("The owner cannot leave the group directly and must transfer ownership or disband it first, userId: {}, sessionId: {}",
                     userId, sessionId);
             throw new BusinessException(ErrorCode.OPERATION_ERROR,
-                    "群主不能直接退出群聊，请先转让群主或解散群");
+                    "The group owner cannot leave directly; transfer ownership or disband the group first");
         }
 
-        // 6. 删除用户会话记录（user_session 使用复合主键 user_id + session_id）
+        // 6. Delete the user-session row (user_session has the composite key user_id + session_id)
         LambdaQueryWrapper<UserSession> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(UserSession::getUserId, userId)
                 .eq(UserSession::getSessionId, sessionId);
         int deleted = userSessionMapper.delete(deleteWrapper);
-        ThrowUtils.throwIf(deleted <= 0, ErrorCode.SYSTEM_ERROR, "退出群聊失败");
+        ThrowUtils.throwIf(deleted <= 0, ErrorCode.SYSTEM_ERROR, "Failed to leave the group");
 
-        log.info("用户成功退出群聊，sessionId: {}, userId: {}", sessionId, userId);
+        log.info("User left the group, sessionId: {}, userId: {}", sessionId, userId);
 
-        // 7. 推送退出通知给群内剩余成员
+        // 7. Notify the members who remain in the group
         pushExitNotification(sessionId, userId);
 
         return true;
     }
 
-    /* ===================== 私有方法 ===================== */
+    /* ===================== Private helpers ===================== */
 
     /**
-     * 校验退出群聊请求参数的合法性
+     * Validates the leave-group request parameters
      */
     private void validateExitGroupParameters(Long sessionId, Long userId) {
-        ThrowUtils.throwIf(sessionId == null || sessionId <= 0, ErrorCode.PARAMS_ERROR, "会话ID不能为空");
-        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户ID不能为空");
+        ThrowUtils.throwIf(sessionId == null || sessionId <= 0, ErrorCode.PARAMS_ERROR, "Session id must not be empty");
+        ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "User id must not be empty");
     }
 
     /**
-     * 校验用户存在且状态正常
+     * Checks that the user exists and is active
      */
     private void validateUser(Long userId) {
         User user = userService.getById(userId);
         ThrowUtils.throwIf(user == null || user.getState() != USER_STATUS_NORMAL,
-                ErrorCode.NOT_FOUND_ERROR, "用户不存在或状态异常");
+                ErrorCode.NOT_FOUND_ERROR, "The user does not exist or is not active");
     }
 
     /**
-     * 校验会话存在且为群聊类型
+     * Checks that the session exists and is a group chat
      */
     private void validateSession(Long sessionId) {
         LambdaQueryWrapper<Session> wrapper = new LambdaQueryWrapper<>();
@@ -143,49 +143,49 @@ public class ExitGroupServiceImpl implements ExitGroupService {
                 .eq(Session::getStatus, SESSION_STATUS_NORMAL);
         Session session = sessionMapper.selectOne(wrapper);
 
-        ThrowUtils.throwIf(session == null, ErrorCode.NOT_FOUND_ERROR, "群聊不存在或已解散");
+        ThrowUtils.throwIf(session == null, ErrorCode.NOT_FOUND_ERROR, "The group does not exist or has been disbanded");
         ThrowUtils.throwIf(!(SessionTypeConstant.GROUP_TYPE == session.getType()),
-                ErrorCode.PARAMS_ERROR, "该会话不是群聊");
+                ErrorCode.PARAMS_ERROR, "That session is not a group chat");
     }
 
     /**
-     * 推送退出通知给群内剩余成员
+     * Notifies the members who remain in the group
      * <p>
-     * 复用 GroupKickNotificationDTO，operatorId 为 null 表示主动退出而非被踢出。
+     * Reuses GroupKickNotificationDTO; a null operatorId means the member left rather than being removed.
      */
     private void pushExitNotification(Long sessionId, Long exitUserId) {
         try {
-            // 1. 查询当前群聊所有剩余成员（不含退出者，因为已删除）
+            // 1. Load the remaining members (the leaver is already gone)
             LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(UserSession::getSessionId, sessionId)
                     .eq(UserSession::getStatus, SESSION_STATUS_NORMAL);
             List<UserSession> remainingMembers = userSessionMapper.selectList(wrapper);
 
             if (remainingMembers.isEmpty()) {
-                log.info("群聊无剩余成员，跳过通知推送，sessionId: {}", sessionId);
+                log.info("No members remain in the group, skipping the notification, sessionId: {}", sessionId);
                 return;
             }
 
-            // 2. 构建通知 DTO（operatorId 为 null 表示主动退出）
+            // 2. Build the notification DTO (a null operatorId means the member left voluntarily)
             GroupKickNotificationDTO notification = new GroupKickNotificationDTO();
             notification.setMemberIds(Collections.singletonList(exitUserId));
-            notification.setOperatorId(null); // 主动退出，无操作者
+            notification.setOperatorId(null); // left voluntarily, so there is no actor
 
-            // 3. 推送通知给所有剩余成员
+            // 3. Push the notification to every remaining member
             for (UserSession member : remainingMembers) {
                 try {
                     notificationService.pushGroupKickNotification(member.getUserId(),
                             sessionId, notification);
                 } catch (Exception e) {
-                    log.error("推送退出通知失败，接收者ID: {}, 会话ID: {}, 错误: {}",
+                    log.error("Failed to push the leave notification, receiver id: {}, session id: {}, error: {}",
                             member.getUserId(), sessionId, e.getMessage());
                 }
             }
 
-            log.info("退出通知推送完成，sessionId: {}, 退出者: {}, 接收者数量: {}",
+            log.info("Leave notification pushed, sessionId: {}, leaver: {}, recipients: {}",
                     sessionId, exitUserId, remainingMembers.size());
         } catch (Exception e) {
-            log.error("推送退出通知失败，sessionId: {}, 错误: {}", sessionId, e.getMessage(), e);
+            log.error("Failed to push the leave notification, sessionId: {}, error: {}", sessionId, e.getMessage(), e);
         }
     }
 }

@@ -1,5 +1,5 @@
-// Node 里没有 Vite 的 `@` 别名和 `import.meta.env`，
-// 这两个钩子把它们补齐，让测试可以直接 import src 下的 TypeScript 源码。
+// Node has neither Vite's `@` alias nor `import.meta.env`;
+// these two hooks supply both, so tests can import the TypeScript sources under src directly.
 import { existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'

@@ -4,22 +4,22 @@ import com.shanyangcode.userservice.model.dto.request.KickGroupMembersRequest;
 import com.shanyangcode.userservice.model.dto.response.KickGroupMembersResponse;
 
 /**
- * 踢出群成员服务接口
+ * Remove-group-members service
  */
 public interface KickGroupService {
 
     /**
-     * 踢出群成员
+     * Removes members from a group
      * <p>
-     * 处理流程：
-     * 1. 参数校验
-     * 2. 校验会话存在且为群聊
-     * 3. 校验操作者为群主或管理员
-     * 4. 逐个校验并踢出成员（群主不可被踢，管理员只能踢普通成员）
-     * 5. 推送踢出通知给群内所有成员及被踢出者
+     * Processing steps:
+     * 1. Validate the parameters
+     * 2. Check that the session exists and is a group chat
+     * 3. Check that the actor is the owner or an admin
+     * 4. Validate and remove each member (the owner cannot be removed; an admin may only remove regular members)
+     * 5. Push the removal notification to every group member and to those removed
      *
-     * @param request 踢出请求
-     * @return 踢出结果（成功踢出的成员ID列表）
+     * @param request the removal request
+     * @return the outcome (the ids of the members actually removed)
      */
     KickGroupMembersResponse kickGroupMembers(KickGroupMembersRequest request);
 }

@@ -6,9 +6,9 @@ import java.io.Serializable;
 import lombok.Data;
 
 /**
- * 好友详情VO
+ * Friend detail VO
  *
- * 用于返回好友的详细信息
+ * Carries the detailed information about a friend
  */
 @Data
 public class FriendDetailVO implements Serializable {
@@ -17,47 +17,47 @@ public class FriendDetailVO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 用户ID
+     * User id
      */
     private String userId;
 
     /**
-     * 昵称
+     * Nickname
      */
     private String nickname;
 
     /**
-     * 头像URL
+     * Avatar URL
      */
     private String avatar;
 
     /**
-     * 邮箱
+     * Email address
      */
     private String email;
 
     /**
-     * 手机号
+     * Phone number
      */
     private String phone;
 
     /**
-     * 个性签名
+     * Bio
      */
     private String signature;
 
     /**
-     * 性别 (0:女 1:男 2:未知)
+     * Gender (0: female, 1: male, 2: unknown)
      */
     private Integer gender;
 
     /**
-     * 会话ID
+     * Session id
      */
     private String sessionId;
 
     /**
-     * 好友状态 (0:好友 1:拉黑 2:删除 -1:非好友)
+     * Friendship status (0: friend, 1: blocked, 2: deleted, -1: not a friend)
      */
     private Integer status;
 }

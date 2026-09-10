@@ -60,7 +60,7 @@ public class NettyService {
                 });
 
         serverBootstrap.bind(port).sync();
-        log.info("Netty WebSocket 服务已启动，监听端口: {}, 路径: {}", port, "/ws/netty");
+        log.info("Netty WebSocket server started, port: {}, path: {}", port, "/ws/netty");
     }
 
     @PreDestroy

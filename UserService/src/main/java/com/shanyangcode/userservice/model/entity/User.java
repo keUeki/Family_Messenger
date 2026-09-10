@@ -7,75 +7,75 @@ import lombok.Data;
 import java.util.Date;
 
 /**
- * 用户表
+ * User table
  * @TableName user
  */
 @TableName(value ="user")
 @Data
 public class User {
     /**
-     * 用户ID
+     * User id
      */
     @TableId
     private Long userId;
 
     /**
-     * 用户手机号
+     * Phone number
      */
     private String phone;
 
     /**
-     * 用户邮箱
+     * Email address
      */
     private String email;
 
     /**
-     * 用户密码
+     * Password
      */
     private String password;
 
     /**
-     * 用户昵称
+     * Nickname
      */
     private String nickname;
 
     /**
-     * 用户头像url
+     * Avatar url
      */
     private String avatar;
 
     /**
-     * 性别 0 女 1 男 2 未知
+     * Gender: 0 female, 1 male, 2 unknown
      */
     private Integer gender;
 
     /**
-     * 个性签名
+     * Bio
      */
     private String description;
 
     /**
-     * 状态 0 正常 1 封禁 2 注销
+     * Status: 0 active, 1 banned, 2 deactivated
      */
     private Integer state;
 
     /**
-     * 角色类型 0 普通用户 1 管理员 2 超级管理员
+     * Role: 0 regular user, 1 admin, 2 super admin
      */
     private Integer role;
 
     /**
-     * 创建时间
+     * Creation time
      */
     private Date createdTime;
 
     /**
-     * 更新时间
+     * Last update time
      */
     private Date updatedTime;
 
     /**
-     * 删除标记（0未删 1已删）
+     * Soft-delete flag (0 not deleted, 1 deleted)
      */
     private Integer isDelete;
 }

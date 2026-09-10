@@ -25,8 +25,8 @@ interface ChatState {
 }
 
 function previewOf(msg: ChatMessage) {
-  if (msg.type === MessageType.Image) return '[图片]'
-  if (msg.type === MessageType.Emoji) return msg.body.content || '[表情]'
+  if (msg.type === MessageType.Image) return '[Image]'
+  if (msg.type === MessageType.Emoji) return msg.body.content || '[Sticker]'
   return msg.body.content || ''
 }
 
@@ -139,7 +139,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             sessionType: 0,
             senderId: '0',
             avatar: '',
-            name: '新会话',
+            name: 'New chat',
             lastMsgContent: '',
             lastMsgTime: new Date().toISOString(),
             count: 0,

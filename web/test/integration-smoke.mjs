@@ -134,7 +134,7 @@ const socketResult = await new Promise((resolve, reject) => {
             senderId: login.userId,
             messageType: 0,
             sessionType: 0,
-            body: { content: 'InfiniteChat canonical 联调冒烟消息' },
+            body: { content: 'InfiniteChat canonical integration smoke message' },
             clientMessageId,
           },
         }),

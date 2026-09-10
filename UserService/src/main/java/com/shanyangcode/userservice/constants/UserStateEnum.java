@@ -1,29 +1,29 @@
 package com.shanyangcode.userservice.constants;
 
 /**
- * 用户状态枚举
+ * User status enum
  *
- * 数据库存储值说明：
- * - 0: 正常
- * - 1: 封禁
- * - 2: 注销
+ * Stored values:
+ * - 0: active
+ * - 1: banned
+ * - 2: deactivated
  */
 public enum UserStateEnum {
 
     /**
-     * 用户状态：正常
+     * Status: active
      */
-    NORMAL(0, "正常"),
+    NORMAL(0, "Active"),
 
     /**
-     * 用户状态：封禁
+     * Status: banned
      */
-    BANNED(1, "封禁"),
+    BANNED(1, "Banned"),
 
     /**
-     * 用户状态：注销
+     * Status: deactivated
      */
-    CANCELLED(2, "注销");
+    CANCELLED(2, "Deactivated");
 
     private final int code;
     private final String description;
@@ -42,11 +42,11 @@ public enum UserStateEnum {
     }
 
     /**
-     * 根据状态码获取枚举值
+     * Returns the enum constant for the given status code
      *
-     * @param code 状态码
-     * @return 对应的枚举值
-     * @throws IllegalArgumentException 如果状态码无效
+     * @param code the status code
+     * @return the matching enum constant
+     * @throws IllegalArgumentException if the status code is not valid
      */
     public static UserStateEnum fromCode(int code) {
         for (UserStateEnum state : UserStateEnum.values()) {
@@ -54,6 +54,6 @@ public enum UserStateEnum {
                 return state;
             }
         }
-        throw new IllegalArgumentException("无效的用户状态码: " + code);
+        throw new IllegalArgumentException("Invalid user status code: " + code);
     }
 }

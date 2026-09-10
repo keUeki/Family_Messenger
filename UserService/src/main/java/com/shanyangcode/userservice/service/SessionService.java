@@ -9,19 +9,19 @@ import com.shanyangcode.userservice.model.entity.Session;
 public interface SessionService extends IService<Session> {
 
     /**
-     * 创建群聊
+     * Creates a group chat
      *
-     * 处理流程：
-     * 1. 验证创建者用户存在且状态正常
-     * 2. 验证所有成员都是创建者的好友
-     * 3. 生成群名称（成员昵称拼接，最多16字符）
-     * 4. 创建Session记录
-     * 5. 创建创建者的UserSession记录（角色：群主）
-     * 6. 为所有成员创建UserSession记录（角色：普通成员）
-     * 7. 发送Kafka通知给所有成员
+     * Processing steps:
+     * 1. Check that the creator exists and is active
+     * 2. Check that every member is a friend of the creator
+     * 3. Build the group name by joining the members' nicknames, capped at 16 characters
+     * 4. Create the Session row
+     * 5. Create the creator's UserSession row (role: owner)
+     * 6. Create a UserSession row for every member (role: regular member)
+     * 7. Publish a Kafka notification to every member
      *
-     * @param request 创建群聊请求参数
-     * @return 创建结果（包含sessionId、群名、失败成员列表）
+     * @param request the create-group request
+     * @return the outcome (the sessionId, the group name and the members that failed)
      */
     CreateGroupResponse createGroup(CreateGroupRequest request);
 

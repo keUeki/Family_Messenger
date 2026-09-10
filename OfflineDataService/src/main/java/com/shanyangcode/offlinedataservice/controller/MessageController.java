@@ -22,9 +22,9 @@ public class MessageController {
     private MessageService messageService;
 
     /**
-     * 获取离线消息（用户上线后调用）
+     * Returns the offline messages; called once the user comes online
      * 
-     * @return Map<sessionId, List<消息>>
+     * @return Map<sessionId, List<message>>
      */
     @PostMapping("/offline")
     public BaseResponse<Map<Long, List<MessageResponse>>> getOfflineMessages(
@@ -33,7 +33,7 @@ public class MessageController {
     }
 
     /**
-     * 获取历史消息（往上翻页）
+     * Returns historical messages (scrolling back through the conversation)
      */
     @PostMapping("/history")
     public BaseResponse<List<MessageResponse>> getHistoryMessages(

@@ -7,7 +7,7 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * 添加好友请求DTO
+ * Add-friend request DTO
  */
 @Data
 public class AddFriendRequest implements Serializable {
@@ -16,8 +16,8 @@ public class AddFriendRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 申请消息
+     * Message attached to the request
      */
-    @NotBlank(message = "申请消息不能为空")
+    @NotBlank(message = "Request message must not be blank")
     private String msg;
 }

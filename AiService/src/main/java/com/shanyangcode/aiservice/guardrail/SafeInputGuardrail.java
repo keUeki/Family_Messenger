@@ -9,7 +9,7 @@ import java.util.Set;
 public class SafeInputGuardrail implements InputGuardrail {
 
 
-    private static final Set<String> sensitiveWords = Set.of("死", "杀");
+    private static final Set<String> sensitiveWords = Set.of("die", "kill");
 
     @Override
     public InputGuardrailResult validate(UserMessage userMessage) {
@@ -18,7 +18,7 @@ public class SafeInputGuardrail implements InputGuardrail {
 
         for (String keyword : sensitiveWords) {
             if (!keyword.isEmpty() && inputText.contains(keyword)) {
-                return fatal("提问不能包含敏感词！！！！！");
+                return fatal("Your question must not contain sensitive words!!!!!");
             }
         }
 

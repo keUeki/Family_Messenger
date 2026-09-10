@@ -10,66 +10,66 @@ import com.shanyangcode.userservice.model.dto.ModifyFriendApplicationResponse;
 import com.shanyangcode.userservice.model.entity.ApplyFriend;
 
 /**
- * 好友申请服务接口
+ * Friend request service
  *
- * 功能说明：
- * - 管理好友申请的完整生命周期
- * - 支持申请、查询、状态修改等操作
- * - 集成Kafka通知和过期机制
+ * Responsibilities:
+ * - Manages the whole life cycle of a friend request
+ * - Supports creating, querying and updating requests
+ * - Integrates the Kafka notification and expiry mechanisms
  */
 public interface ApplyFriendService extends IService<ApplyFriend> {
 
     /**
-     * 发送好友申请
+     * Sends a friend request
      * <p>
-     * 处理流程：
-     * 1. 验证发送者和接收者用户是否存在
-     * 2. 检查是否已经是好友关系
-     * 3. 检查是否已有待处理的申请
-     *   4a. 没有：插入新申请记录，同时异步发出 Kafka 通知（通知链路 + 过期链路）
-     *   4b. 有且已通过：返回"已是好友"
-     *   4c. 有但其它状态（已读 / 已拒绝 / 已过期）：复用记录、状态回写为 UNREAD、附言更新，同时异步发出 Kafka 通知（通知链路 + 过期链路）
-     * 5. 返回 applyFriendId
+     * Processing steps:
+     * 1. Check that both the sender and the receiver exist
+     * 2. Check whether they are already friends
+     * 3. Check for an existing pending request
+     *   4a. None: insert a new request row and asynchronously emit the Kafka events (notification + expiry)
+     *   4b. One exists and was accepted: report that they are already friends
+     *   4c. One exists in another state (read / rejected / expired): reuse the row, reset the status to UNREAD, update the message, and asynchronously emit the Kafka events (notification + expiry)
+     * 5. Return the applyFriendId
      *
-     * @param senderId   发送者用户ID
-     * @param receiverId 接收者用户ID
-     * @param message    申请消息
-     * @return 好友申请ID
+     * @param senderId   the sender's user id
+     * @param receiverId the receiver's user id
+     * @param message    the request message
+     * @return the friend request id
      */
     Long sendFriendRequest(Long senderId, Long receiverId, String message);
 
     /**
-     * 分页查询与该用户相关的好友申请列表（含对方用户信息）
+     * Returns a page of the friend requests involving this user, including the other party's details
      * <p>
-     * 列表同时包含"我发出的"和"我收到的"两类申请，
-     * 由返回结果中的 isReceiver 字段区分视角。
+     * The list mixes requests I sent with requests I received;
+     * the isReceiver field on each row says which side I am on.
      *
-     * @param userId      用户ID
-     * @param pageRequest 分页参数
-     * @return 申请DTO分页结果
+     * @param userId      the user id
+     * @param pageRequest the pagination parameters
+     * @return a page of request DTOs
      */
     IPage<ApplyFriendDTO> getReceivedRequestsWithUserInfo(Long userId, PageRequest pageRequest);
 
     /**
-     * 查询未读好友申请数量
+     * Returns the number of unread friend requests
      * <p>
-     * 只统计"我收到的"且状态为未读的申请。
+     * Counts only the requests I received that are still unread.
      *
-     * @param userId 用户ID
-     * @return 未读数量
+     * @param userId the user id
+     * @return the unread count
      */
     int getUnreadCount(Long userId);
 
     /**
-     * 修改好友申请状态
+     * Updates the status of one or more friend requests
      * <p>
-     * 仅允许改为通过(1)、拒绝(2)、已读(3)；
-     * 通过和拒绝时 senderIds 只能包含一个元素，已读时可批量。
+     * Only accept (1), reject (2) and read (3) are allowed;
+     * accept and reject take exactly one senderId, while read accepts several.
      *
-     * @param receiverId 接收者用户ID（当前操作人）
-     * @param senderIds  申请发送者用户ID列表
-     * @param status     目标状态码
-     * @return 通过申请时返回新建的会话信息，其他情况返回 null
+     * @param receiverId the receiver's user id (the current actor)
+     * @param senderIds  the user ids of the request senders
+     * @param status     the target status code
+     * @return the newly created session when a request is accepted, otherwise null
      */
     ModifyFriendApplicationResponse modifyApplicationStatus(Long receiverId, List<Long> senderIds, Integer status);
 }

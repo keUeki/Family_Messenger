@@ -5,15 +5,15 @@ import com.shanyangcode.userservice.model.dto.response.SessionSummaryDTO;
 import java.util.List;
 
 /**
- * 会话列表服务
+ * Session list service
  */
 public interface SessionSummaryService {
 
     /**
-     * 查询用户的全部会话（单聊、群聊、AI），按最后一条消息时间倒序
+     * Returns every session the user belongs to (one-to-one, group, AI), newest last-message first
      *
-     * @param userId 用户 ID
-     * @return 会话列表
+     * @param userId the user id
+     * @return the session list
      */
     List<SessionSummaryDTO> getUserSessions(Long userId);
 }

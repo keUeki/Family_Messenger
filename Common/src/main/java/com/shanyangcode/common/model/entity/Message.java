@@ -14,48 +14,48 @@ import java.util.Date;
 @Data
 public class Message implements Serializable {
     /**
-     * 消息 id
+     * Message id
      */
     @TableId
     private Long messageId;
 
     /**
-     * 发送者 id
+     * Sender id
      */
     private Long senderId;
 
     /**
-     * 会话 id
+     * Session id
      */
     private Long sessionId;
 
     /**
-     * 消息类型: 0 文本消息，1 图片消息，2 表情包，3 红包
+     * Message type: 0 text, 1 image, 2 sticker, 3 red packet
      */
     private Integer type;
 
     /**
-     * 消息内容
+     * Message content
      */
     private String content;
 
     /**
-     * 消息引用 id
+     * Referenced message id
      */
     private Long replyId;
 
     /**
-     * 会话类型: 0 单聊，1 群聊
+     * Session type: 0 one-to-one, 1 group
      */
     private Integer sessionType;
 
     /**
-     * 创建时间
+     * Creation time
      */
     private Date createdTime;
 
     /**
-     * 更新时间
+     * Last update time
      */
     private Date updatedTime;
 

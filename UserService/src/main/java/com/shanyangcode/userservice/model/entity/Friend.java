@@ -9,18 +9,18 @@ import lombok.experimental.Accessors;
 import java.time.LocalDateTime;
 
 /**
- * 好友关系表实体类
+ * Friendship entity
  *
- * 功能说明：
- * - 记录用户之间的好友关系
- * - 使用复合主键（user_id + friend_id）
- * - 支持好友状态管理（好友、拉黑、删除）
- * - 双向关系：A添加B为好友时，需同时创建两条记录
+ * Responsibilities:
+ * - Records the friendships between users
+ * - Uses the composite primary key (user_id + friend_id)
+ * - Tracks the friendship status (friend, blocked, deleted)
+ * - The relation is bidirectional: adding B as A's friend creates two rows
  *
- * 数据库表：friend
+ * Database table: friend
  *
- * 注意事项：
- * - 本表使用复合主键，无独立自增ID
+ * Notes:
+ * - This table has a composite primary key and no standalone auto-increment id
  */
 @Data
 @TableName("friend")
@@ -28,35 +28,35 @@ import java.time.LocalDateTime;
 public class Friend {
 
     /**
-     * 用户ID（复合主键之一）
+     * User id (first half of the composite primary key)
      */
     @TableField("user_id")
     private Long userId;
 
     /**
-     * 好友ID（复合主键之二）
+     * Friend id (second half of the composite primary key)
      */
     @TableField("friend_id")
     private Long friendId;
 
     /**
-     * 好友状态
-     * 0: 好友（NORMAL）- 正常好友关系
-     * 1: 拉黑（BLOCKED）- 已拉黑
-     * 2: 删除（DELETED）- 已删除
+     * Friendship status
+     * 0: friend (NORMAL) - an ordinary friendship
+     * 1: blocked (BLOCKED)
+     * 2: deleted (DELETED)
      *
      */
     @TableField("status")
     private Integer status;
 
     /**
-     * 创建时间
+     * Creation time
      */
     @TableField("created_time")
     private LocalDateTime createdTime;
 
     /**
-     * 更新时间
+     * Last update time
      */
     @TableField("updated_time")
     private LocalDateTime updatedTime;

@@ -8,7 +8,7 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * 群聊邀请请求DTO
+ * Group invitation request DTO
  */
 @Data
 public class InviteGroupRequest implements Serializable {
@@ -17,20 +17,20 @@ public class InviteGroupRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 会话ID
+     * Session id
      */
-    @NotNull(message = "会话ID不能为空")
+    @NotNull(message = "Session id must not be null")
     private Long sessionId;
 
     /**
-     * 邀请者用户ID
+     * Inviter's user id
      */
-    @NotNull(message = "邀请者ID不能为空")
+    @NotNull(message = "Inviter id must not be null")
     private Long inviterId;
 
     /**
-     * 被邀请者用户ID列表
+     * User ids of the people being invited
      */
-    @NotNull(message = "被邀请者ID列表不能为空")
+    @NotNull(message = "Invitee id list must not be null")
     private List<Long> inviteeIds;
 }

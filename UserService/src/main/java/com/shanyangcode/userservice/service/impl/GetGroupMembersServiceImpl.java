@@ -25,7 +25,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * 群成员查询服务实现类
+ * Group member lookup service implementation
  */
 @Slf4j
 @Service
@@ -36,7 +36,7 @@ public class GetGroupMembersServiceImpl implements GetGroupMembersService {
     private final UserService userService;
 
     /**
-     * 会话状态常量
+     * Session status constants
      */
     private static final int SESSION_STATUS_NORMAL = 0;
 
@@ -49,25 +49,25 @@ public class GetGroupMembersServiceImpl implements GetGroupMembersService {
     }
 
     /**
-     * 分页查询群成员列表
+     * Returns a page of the group's members
      *
-     * @param sessionId   会话ID
-     * @param pageRequest 分页参数
-     * @return 群成员分页结果
+     * @param sessionId   the session id
+     * @param pageRequest the pagination parameters
+     * @return a page of group members
      */
     @Override
     public PageResponse<GroupMemberDTO> getGroupMembers(Long sessionId, PageRequest pageRequest) {
-        log.info("查询群聊成员列表，sessionId: {}, pageNum: {}, pageSize: {}",
+        log.info("Loading the group member list, sessionId: {}, pageNum: {}, pageSize: {}",
                 sessionId, pageRequest.getPageNum(), pageRequest.getPageSize());
 
-        // 1. 参数校验
+        // 1. Validate the parameters
         ThrowUtils.throwIf(sessionId == null || sessionId <= 0,
-                ErrorCode.PARAMS_ERROR, "会话ID不能为空");
+                ErrorCode.PARAMS_ERROR, "Session id must not be empty");
 
-        // 2. 校验会话存在且为群聊
+        // 2. Check that the session exists and is a group chat
         validateSession(sessionId);
 
-        // 3. 分页查询群成员的 UserSession 记录
+        // 3. Query a page of the members' UserSession rows
         Page<UserSession> page = pageRequest.toPage();
         LambdaQueryWrapper<UserSession> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserSession::getSessionId, sessionId)
@@ -77,21 +77,21 @@ public class GetGroupMembersServiceImpl implements GetGroupMembersService {
         List<UserSession> userSessions = userSessionPage.getRecords();
 
         if (userSessions.isEmpty()) {
-            log.info("群聊成员列表为空，sessionId: {}", sessionId);
+            log.info("The group member list is empty, sessionId: {}", sessionId);
             return PageResponse.of(userSessionPage, us -> null);
         }
 
-        // 4. 提取所有用户 ID
+        // 4. Collect the user ids
         List<Long> userIds = userSessions.stream()
                 .map(UserSession::getUserId)
                 .collect(Collectors.toList());
 
-        // 5. 批量查询用户信息
+        // 5. Fetch the user records in one query
         List<User> users = userService.listByIds(userIds);
         Map<Long, User> userMap = users.stream()
                 .collect(Collectors.toMap(User::getUserId, user -> user));
 
-        // 6. 组装 GroupMemberDTO 列表
+        // 6. Assemble the GroupMemberDTO list
         List<GroupMemberDTO> groupMembers = new ArrayList<>();
         for (UserSession userSession : userSessions) {
             User user = userMap.get(userSession.getUserId());
@@ -105,7 +105,7 @@ public class GetGroupMembersServiceImpl implements GetGroupMembersService {
             }
         }
 
-        // 7. 构建分页响应
+        // 7. Build the paginated response
         PageResponse<GroupMemberDTO> response = PageResponse.<GroupMemberDTO>builder()
                 .list(groupMembers)
                 .total(userSessionPage.getTotal())
@@ -116,16 +116,16 @@ public class GetGroupMembersServiceImpl implements GetGroupMembersService {
                 .hasPrevious(userSessionPage.getCurrent() > 1)
                 .build();
 
-        log.info("查询群聊成员列表成功，sessionId: {}, 当前页成员数: {}, 总数: {}",
+        log.info("Group member list loaded, sessionId: {}, members on this page: {}, total: {}",
                 sessionId, groupMembers.size(), userSessionPage.getTotal());
 
         return response;
     }
 
-    /* ===================== 私有方法 ===================== */
+    /* ===================== Private helpers ===================== */
 
     /**
-     * 校验会话存在且为群聊类型
+     * Checks that the session exists and is a group chat
      */
     private void validateSession(Long sessionId) {
         LambdaQueryWrapper<Session> wrapper = new LambdaQueryWrapper<>();
@@ -133,8 +133,8 @@ public class GetGroupMembersServiceImpl implements GetGroupMembersService {
                 .eq(Session::getStatus, SESSION_STATUS_NORMAL);
         Session session = sessionMapper.selectOne(wrapper);
 
-        ThrowUtils.throwIf(session == null, ErrorCode.NOT_FOUND_ERROR, "群聊不存在或已解散");
+        ThrowUtils.throwIf(session == null, ErrorCode.NOT_FOUND_ERROR, "The group does not exist or has been disbanded");
         ThrowUtils.throwIf(!(SessionTypeConstant.GROUP_TYPE == session.getType()),
-                ErrorCode.PARAMS_ERROR, "该会话不是群聊");
+                ErrorCode.PARAMS_ERROR, "That session is not a group chat");
     }
 }

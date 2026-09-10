@@ -29,7 +29,7 @@ export const aiApi = {
       headers: authHeaders(),
       body: JSON.stringify({ sessionId, userId, prompt }),
     })
-    if (!response.ok || !response.body) throw new Error(`AI 流式请求失败 (${response.status})`)
+    if (!response.ok || !response.body) throw new Error(`AI streaming request failed (${response.status})`)
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
@@ -71,6 +71,6 @@ export const aiApi = {
       sourceName: 'InfiniteChat.md',
     })
     const message = typeof response.data === 'string' ? response.data : String(response.data ?? '')
-    return { id: title, inserted: message.includes('成功'), contentHash: title }
+    return { id: title, inserted: message.includes('succeeded'), contentHash: title }
   },
 }

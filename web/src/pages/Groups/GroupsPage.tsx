@@ -47,7 +47,7 @@ export function GroupsPage() {
       setGroups(g?.list || [])
       setFriends(f?.list || [])
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '加载失败')
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load')
     } finally {
       setLoading(false)
     }
@@ -64,7 +64,7 @@ export function GroupsPage() {
   const onCreate = async () => {
     const memberIds = selected.filter((id) => /^\d+$/.test(id) && id !== '0')
     if (!memberIds.length) {
-      toast.warning('请至少选择一位成员')
+      toast.warning('Select at least one member')
       return
     }
     setBusy(true)
@@ -82,14 +82,14 @@ export function GroupsPage() {
         senderId: userId,
         count: 0,
         type: 0,
-        lastMsgContent: '群聊已创建',
+        lastMsgContent: 'Group created',
         lastMsgTime: new Date().toISOString(),
       })
       setActiveSession(sessionId)
-      toast.success('群聊已创建')
+      toast.success('Group created')
       navigate(`/app/chat/${sessionId}`)
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '创建失败')
+      toast.error(e instanceof ApiError ? e.message : 'Failed to create')
     } finally {
       setBusy(false)
     }
@@ -103,7 +103,7 @@ export function GroupsPage() {
       const page = await groupApi.getMembers(g.sessionId)
       setMembers(page?.list || [])
     } catch (e) {
-      toast.error(e instanceof ApiError ? e.message : '加载成员失败')
+      toast.error(e instanceof ApiError ? e.message : 'Failed to load the members')
     }
   }
 
@@ -129,19 +129,19 @@ export function GroupsPage() {
       <div className={styles.header}>
         <div>
           <span className={styles.eyebrow}>YOUR COMMUNITIES</span>
-          <h2>我的群组</h2>
-          <p>让共同关注的事情，有一个持续发生的地方。</p>
+          <h2>My groups</h2>
+          <p>Give the things you care about together a place to keep happening.</p>
         </div>
-        <Button onClick={() => setCreateOpen(true)}>＋ 创建群聊</Button>
+        <Button onClick={() => setCreateOpen(true)}>+ Create group</Button>
       </div>
       <div className={styles.summary}>
-        <div><span>已加入</span><strong>{groups.length}</strong><small>个群组</small></div>
-        <div><span>可邀请</span><strong>{friends.length}</strong><small>位好友</small></div>
-        <div><span>共同连接</span><strong>{groups.reduce((sum, group) => sum + (group.memberCount || 0), 0)}</strong><small>人次</small></div>
+        <div><span>Joined</span><strong>{groups.length}</strong><small>groups</small></div>
+        <div><span>Can invite</span><strong>{friends.length}</strong><small>friends</small></div>
+        <div><span>Shared connections</span><strong>{groups.reduce((sum, group) => sum + (group.memberCount || 0), 0)}</strong><small>memberships</small></div>
       </div>
       {loading ? <SkeletonList rows={3} /> : null}
 
-      <div className={styles.listHeading}><h3>全部群组</h3><span>{groups.length} 个</span></div>
+      <div className={styles.listHeading}><h3>All groups</h3><span>{groups.length} total</span></div>
       <div className={styles.list}>
         {groups.map((g) => (
           <div key={g.sessionId} className={styles.row}>
@@ -149,24 +149,24 @@ export function GroupsPage() {
             <div className={styles.meta}>
               <strong>{g.sessionName}</strong>
               <span>
-                {g.memberCount} 人 · 角色 {g.role === 0 ? '群主' : g.role === 1 ? '管理员' : '成员'}
+                {g.memberCount} members - role {g.role === 0 ? 'Owner' : g.role === 1 ? 'Admin' : 'Member'}
               </span>
             </div>
             <div className={styles.actions}>
               <Button variant="secondary" onClick={() => enterChat(g)}>
-                进入聊天
+                Open chat
               </Button>
               <Button variant="ghost" onClick={() => openGroup(g)}>
-                管理
+                Manage
               </Button>
             </div>
           </div>
         ))}
         {!groups.length && !loading ? (
           <EmptyState
-            title="还没有群聊"
-            description="邀请好友一起创建一个群吧。"
-            actionLabel="创建群聊"
+            title="No groups yet"
+            description="Invite some friends and create your first group."
+            actionLabel="Create group"
             onAction={() => setCreateOpen(true)}
           />
         ) : null}
@@ -174,19 +174,19 @@ export function GroupsPage() {
 
       <Modal
         open={createOpen}
-        title="创建群聊"
+        title="Create a group"
         onClose={() => setCreateOpen(false)}
         footer={
           <>
             <Button variant="secondary" onClick={() => setCreateOpen(false)}>
-              取消
+              Cancel
             </Button>
-            <Button loading={busy} onClick={onCreate}>创建</Button>
+            <Button loading={busy} onClick={onCreate}>Create</Button>
           </>
         }
         width={480}
       >
-        <p className={styles.hint}>选择要邀请的好友</p>
+        <p className={styles.hint}>Choose the friends to invite</p>
         <div className={styles.pickList}>
           {friends.map((f) => (
             <label key={f.userId} className={styles.pickItem}>
@@ -204,26 +204,26 @@ export function GroupsPage() {
 
       <Modal
         open={Boolean(activeGroup)}
-        title={activeGroup?.sessionName || '群管理'}
+        title={activeGroup?.sessionName || 'Group management'}
         onClose={() => setActiveGroup(null)}
         width={520}
       >
         {activeGroup ? (
           <div className={styles.manage}>
-            <p className={styles.muted}>成员列表</p>
+            <p className={styles.muted}>Members</p>
             <div className={styles.memberList}>
               {members.map((m) => (
                 <div key={m.userId} className={styles.member}>
                   <Avatar src={m.avatar} name={m.nickname} size={36} />
                   <div>
                     <strong>{m.nickname}</strong>
-                    <span>{m.role === 0 ? '群主' : m.role === 1 ? '管理员' : '成员'}</span>
+                    <span>{m.role === 0 ? 'Owner' : m.role === 1 ? 'Admin' : 'Member'}</span>
                   </div>
                 </div>
               ))}
             </div>
 
-            <p className={styles.hint}>邀请好友入群</p>
+            <p className={styles.hint}>Invite friends to the group</p>
             <div className={styles.pickList}>
               {inviteCandidates.map((f) => (
                 <label key={f.userId} className={styles.pickItem}>
@@ -236,35 +236,35 @@ export function GroupsPage() {
                   <span>{f.nickname}</span>
                 </label>
               ))}
-              {!inviteCandidates.length ? <p className={styles.muted}>暂无可邀请好友</p> : null}
+              {!inviteCandidates.length ? <p className={styles.muted}>No friends available to invite</p> : null}
             </div>
             <Button
               loading={busy}
               onClick={async () => {
                 const ids = inviteSelected.filter((id) => /^\d+$/.test(id) && id !== '0')
                 if (!ids.length) {
-                  toast.warning('请选择要邀请的好友')
+                  toast.warning('Choose the friends to invite')
                   return
                 }
                 setBusy(true)
                 try {
                   await groupApi.inviteGroup(activeGroup.sessionId, userId, ids)
                   setInviteSelected([])
-                  toast.success('已发送邀请')
+                  toast.success('Invitations sent')
                   await openGroup(activeGroup)
                 } catch (e) {
-                  toast.error(e instanceof ApiError ? e.message : '邀请失败')
+                  toast.error(e instanceof ApiError ? e.message : 'Failed to invite')
                 } finally {
                   setBusy(false)
                 }
               }}
             >
-              邀请入群
+              Invite to group
             </Button>
 
             {(activeGroup.role === 0 || activeGroup.role === 1) ? (
               <>
-                <p className={styles.hint}>选择要踢出的成员</p>
+                <p className={styles.hint}>Choose the members to remove</p>
                 <div className={styles.pickList}>
                   {members
                     .filter((m) => m.userId !== userId && m.role !== 0)
@@ -283,13 +283,13 @@ export function GroupsPage() {
                     ))}
                 </div>
                 <Button variant="secondary" onClick={() => setConfirmKick(true)}>
-                  踢出选中成员
+                  Remove selected members
                 </Button>
               </>
             ) : null}
 
             <Button variant="danger" onClick={() => setConfirmExit(true)}>
-              退出群聊
+              Leave group
             </Button>
           </div>
         ) : null}
@@ -297,8 +297,8 @@ export function GroupsPage() {
 
       <ConfirmDialog
         open={confirmKick}
-        title="确认踢出成员？"
-        description={`将踢出 ${kickSelected.length} 位成员。`}
+        title="Remove these members?"
+        description={`${kickSelected.length} member(s) will be removed.`}
         danger
         loading={busy}
         onCancel={() => setConfirmKick(false)}
@@ -306,7 +306,7 @@ export function GroupsPage() {
           if (!activeGroup) return
           const ids = kickSelected.filter((id) => /^\d+$/.test(id) && id !== '0')
           if (!ids.length) {
-            toast.warning('请先选择成员')
+            toast.warning('Select some members first')
             setConfirmKick(false)
             return
           }
@@ -315,10 +315,10 @@ export function GroupsPage() {
             await groupApi.kickMembers(activeGroup.sessionId, userId, ids)
             setKickSelected([])
             setConfirmKick(false)
-            toast.success('已踢出')
+            toast.success('Members removed')
             await openGroup(activeGroup)
           } catch (e) {
-            toast.error(e instanceof ApiError ? e.message : '操作失败')
+            toast.error(e instanceof ApiError ? e.message : 'The operation failed')
           } finally {
             setBusy(false)
           }
@@ -327,10 +327,10 @@ export function GroupsPage() {
 
       <ConfirmDialog
         open={confirmExit}
-        title="确认退出群聊？"
-        description="退出后需要被再次邀请才能加入。"
+        title="Leave this group?"
+        description="Once you leave you will need another invitation to rejoin."
         danger
-        confirmLabel="退出"
+        confirmLabel="Leave"
         loading={busy}
         onCancel={() => setConfirmExit(false)}
         onConfirm={async () => {
@@ -340,10 +340,10 @@ export function GroupsPage() {
             await groupApi.exitGroup(activeGroup.sessionId, userId)
             setConfirmExit(false)
             setActiveGroup(null)
-            toast.info('已退出群聊')
+            toast.info('You left the group')
             await reload()
           } catch (e) {
-            toast.error(e instanceof ApiError ? e.message : '操作失败')
+            toast.error(e instanceof ApiError ? e.message : 'The operation failed')
           } finally {
             setBusy(false)
           }

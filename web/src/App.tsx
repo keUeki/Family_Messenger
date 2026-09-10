@@ -36,7 +36,7 @@ export default function App() {
     }
     const onAuthExpired = () => {
       useAuthStore.getState().clearSession()
-      toast.warning('登录状态已过期，请重新登录')
+      toast.warning('Your session has expired, please log in again')
     }
     window.addEventListener('infinitechat:token-refreshed', onTokenRefreshed)
     window.addEventListener('infinitechat:auth-expired', onAuthExpired)

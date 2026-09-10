@@ -1,28 +1,28 @@
-# 📚 千言 AI 助手知识库文档
+# 📚 Qianyan AI Assistant Knowledge Base
 
-### Q. 项目基本信息[11, 2 ....., 33, 4]
+### Q. Basic project information[11, 2 ....., 33, 4]
 
-A：
-- **项目名称**：千言
-- **英文名称**：InfiniteChat
-- **项目类型**：即时通讯（IM）软件
-- **核心理念**：让沟通更自由，让表达更千言万语
-- **目标用户**：个人用户、小型团队、社区交流者
-- **开发状态**：[开发中]
+A:
+- **Project name**: Qianyan
+- **English name**: InfiniteChat
+- **Project type**: instant messaging (IM) software
+- **Core idea**: make communication freer, and let people say all they want to say
+- **Target users**: individuals, small teams, community members
+- **Development status**: [in development]
 
-### Q. 项目背景与愿景 
+### Q. Project background and vision
 
-A：「千言」诞生于对高效、简洁、私密沟通工具的需求。在信息爆炸的时代，我们希望打造一个轻量、安全、智能的聊天平台，让用户专注于交流本身，而非被繁杂的功能干扰。
-“千言”取自成语“千言万语”，寓意即使千言万语，也能在此顺畅传达。
+A: Qianyan grew out of the need for an efficient, uncluttered and private communication tool. In an age of information overload, we wanted to build a lightweight, secure and intelligent chat platform that lets users focus on the conversation itself rather than being distracted by feature bloat.
+The name comes from the Chinese idiom "qian yan wan yu" (literally "a thousand words, ten thousand phrases"), meaning that however much there is to say, it can be conveyed here with ease.
 
 
-### Q：这个软件叫什么名字？ 
+### Q: What is this software called?
 
-A：本软件名为「千言」，寓意“千言万语，尽在其中”。
+A: The software is called Qianyan, a name that suggests everything you want to say has a place here.
 
-### Q：谁开发了千言？
+### Q: Who developed Qianyan?
 
-A：千言由 [山羊算法] 独立开发。
+A: Qianyan was developed single-handedly by [Goat Algorithm].
 
 
 
@@ -32,6 +32,6 @@ A：千言由 [山羊算法] 独立开发。
        
 
 
-### Q：千言智能助手项目第五课是什么时候录制的
+### Q: When was lesson 5 of the Qianyan smart assistant project recorded?
 
-A：2026-1-28
+A: 2026-1-28

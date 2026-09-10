@@ -8,9 +8,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.Data;
 
 /**
- * 统一分页请求参数
+ * Shared pagination request parameters
  * <p>
- * 使用方式: Query Params: ?pageNum=1&pageSize=20
+ * Usage: query params ?pageNum=1&pageSize=20
  */
 @Data
 public class PageRequest implements Serializable {
@@ -19,12 +19,12 @@ public class PageRequest implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 当前页码（从 1 开始）
+     * Current page number (1-based)
      */
     private Integer pageNum = 1;
 
     /**
-     * 每页大小
+     * Page size
      */
     private Integer pageSize = 20;
 
@@ -37,7 +37,7 @@ public class PageRequest implements Serializable {
     }
 
     /**
-     * 转换为 MyBatis-Plus Page 对象
+     * Converts to a MyBatis-Plus Page object
      */
     public <T> Page<T> toPage() {
         int num = getPageNum();
